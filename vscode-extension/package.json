@@ -1,0 +1,75 @@
+{
+  "name": "ai-code-generator",
+  "displayName": "AI Code Generator (Bedrock)",
+  "description": "Generate Python code using AWS Bedrock Claude 3.5",
+  "version": "1.0.0",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "aiCodeGen.generateFunction",
+        "title": "AI: Generate Function",
+        "category": "AI Code Generator"
+      },
+      {
+        "command": "aiCodeGen.generateClass",
+        "title": "AI: Generate Class",
+        "category": "AI Code Generator"
+      },
+      {
+        "command": "aiCodeGen.generateTests",
+        "title": "AI: Generate Tests for Selection",
+        "category": "AI Code Generator"
+      },
+      {
+        "command": "aiCodeGen.validateCode",
+        "title": "AI: Validate Selection",
+        "category": "AI Code Generator"
+      },
+      {
+        "command": "aiCodeGen.explainCode",
+        "title": "AI: Explain Selection",
+        "category": "AI Code Generator"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "aiCodeGen.generateFunction",
+        "key": "ctrl+shift+k",
+        "when": "editorTextFocus"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "submenu": "aiCodeGen.submenu",
+          "group": "1_modification"
+        }
+      ],
+      "aiCodeGen.submenu": [
+        { "command": "aiCodeGen.generateFunction" },
+        { "command": "aiCodeGen.generateClass" },
+        { "command": "aiCodeGen.generateTests" },
+        { "command": "aiCodeGen.validateCode" },
+        { "command": "aiCodeGen.explainCode" }
+      ]
+    },
+    "submenus": [
+      {
+        "id": "aiCodeGen.submenu",
+        "label": "AI Code Generator"
+      }
+    ]
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^2.24.0"
+  }
+}
