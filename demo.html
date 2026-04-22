@@ -251,6 +251,59 @@
     color: var(--text-dim); white-space: pre-wrap; min-height: 200px;
   }
 
+  /* ── Stats ── */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px 16px; text-align: center;
+    transition: border-color .2s;
+  }
+  .stat-card:hover { border-color: var(--border-light); }
+  .stat-card.accent { border-color: rgba(59,130,246,.3); background: rgba(59,130,246,.05); }
+  .stat-card.highlight { border-color: rgba(99,102,241,.3); background: rgba(99,102,241,.05); }
+  .stat-icon { font-size: 1.4rem; margin-bottom: 10px; }
+  .stat-val { font-size: 1.5rem; font-weight: 700; color: #fff; margin-bottom: 4px; font-family: var(--font-mono); }
+  .stat-lbl { font-size: .72rem; color: var(--text-muted); }
+  .stats-row { display: flex; gap: 20px; }
+  .today-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+  }
+  .today-item:last-child { border-bottom: none; }
+  .today-lbl { font-size: .82rem; color: var(--text-muted); }
+  .today-val { font-size: .88rem; color: var(--text); font-family: var(--font-mono); }
+  .today-val.accent-text { color: var(--accent); }
+  .model-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .model-row:last-child { border-bottom: none; }
+  .model-row-name { font-size: .82rem; color: var(--text-dim); flex: 1; }
+  .model-row-bar-wrap { flex: 2; height: 6px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .model-row-bar { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #1d4ed8, #6366f1); transition: width .6s; }
+  .model-row-stat { font-size: .78rem; color: var(--text-muted); text-align: right; width: 110px; font-family: var(--font-mono); }
+  .type-row {
+    display: flex; align-items: center; gap: 10px; padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .type-row:last-child { border-bottom: none; }
+  .type-name { font-size: .82rem; color: var(--text-dim); width: 80px; }
+  .type-bar-wrap { flex: 1; height: 6px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .type-bar { height: 100%; border-radius: 4px; background: var(--green); }
+  .type-count { font-size: .78rem; color: var(--text-muted); width: 30px; text-align: right; font-family: var(--font-mono); }
+  .trend-row {
+    display: flex; align-items: center; gap: 10px; padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .trend-row:last-child { border-bottom: none; }
+  .trend-date { font-size: .78rem; color: var(--text-muted); width: 90px; font-family: var(--font-mono); }
+  .trend-bar-wrap { flex: 1; height: 6px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .trend-bar { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #6366f1, #3b82f6); }
+  .trend-stat { font-size: .75rem; color: var(--text-muted); width: 150px; text-align: right; font-family: var(--font-mono); }
+  .no-data { font-size: .85rem; color: var(--text-muted); padding: 20px 0; text-align: center; }
+
   /* ── Scrollbar ── */
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -351,6 +404,11 @@
     </div>
     <div class="nav-item" onclick="switchTab('explain')" id="nav-explain">
       <span class="nav-icon">💬</span> 코드 설명
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-label">사용 현황</div>
+    <div class="nav-item" onclick="switchTab('stats')" id="nav-stats">
+      <span class="nav-icon">📊</span> 토큰 & 비용
     </div>
   </aside>
 
@@ -573,6 +631,89 @@
       </div>
     </div>
 
+    <!-- 토큰 & 비용 통계 -->
+    <div class="panel" id="panel-stats">
+      <div class="panel-header">
+        <div class="panel-title">토큰 & 비용 현황</div>
+        <div class="panel-desc">API 호출 이력 기반 토큰 사용량 및 비용 분석입니다.</div>
+      </div>
+
+      <!-- 요약 카드 4개 -->
+      <div class="stats-grid" id="stats-summary">
+        <div class="stat-card">
+          <div class="stat-icon">🔢</div>
+          <div class="stat-val" id="st-total-calls">-</div>
+          <div class="stat-lbl">총 생성 횟수</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🪙</div>
+          <div class="stat-val" id="st-total-tokens">-</div>
+          <div class="stat-lbl">총 토큰 사용</div>
+        </div>
+        <div class="stat-card accent">
+          <div class="stat-icon">💵</div>
+          <div class="stat-val" id="st-total-cost">-</div>
+          <div class="stat-lbl">누적 비용 (USD)</div>
+        </div>
+        <div class="stat-card highlight">
+          <div class="stat-icon">📅</div>
+          <div class="stat-val" id="st-monthly">-</div>
+          <div class="stat-lbl">월 예상 비용 (USD)</div>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <!-- 오늘 현황 -->
+        <div class="card" style="flex:1">
+          <div class="card-title">오늘 사용량</div>
+          <div class="today-stats">
+            <div class="today-item">
+              <span class="today-lbl">호출 횟수</span>
+              <span class="today-val" id="st-today-calls">-</span>
+            </div>
+            <div class="today-item">
+              <span class="today-lbl">입력 토큰</span>
+              <span class="today-val" id="st-today-input">-</span>
+            </div>
+            <div class="today-item">
+              <span class="today-lbl">출력 토큰</span>
+              <span class="today-val" id="st-today-output">-</span>
+            </div>
+            <div class="today-item">
+              <span class="today-lbl">오늘 비용</span>
+              <span class="today-val accent-text" id="st-today-cost">-</span>
+            </div>
+            <div class="today-item">
+              <span class="today-lbl">일 평균 비용</span>
+              <span class="today-val" id="st-avg-daily">-</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 기능별 사용 -->
+        <div class="card" style="flex:1">
+          <div class="card-title">기능별 사용 횟수</div>
+          <div id="st-by-type"></div>
+        </div>
+      </div>
+
+      <!-- 모델별 비용 -->
+      <div class="card" style="margin-top:20px">
+        <div class="card-title">모델별 사용량 & 비용</div>
+        <div id="st-by-model"></div>
+      </div>
+
+      <!-- 최근 7일 트렌드 -->
+      <div class="card" style="margin-top:20px">
+        <div class="card-title">최근 7일 트렌드</div>
+        <div id="st-trend"></div>
+      </div>
+
+      <div style="text-align:right;margin-top:16px">
+        <button class="btn-icon" onclick="loadStats()" style="padding:8px 18px;font-size:.82rem">↻ 새로고침</button>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -580,12 +721,13 @@
 const API = 'http://localhost:8000';
 
 // ── 탭 전환 ───────────────────────────────────────────────────────────────────
-const TABS = ['function','class','tests','validate','explain'];
+const TABS = ['function','class','tests','validate','explain','stats'];
 function switchTab(name) {
   TABS.forEach(t => {
     document.getElementById('nav-' + t)?.classList.toggle('active', t === name);
     document.getElementById('panel-' + t)?.classList.toggle('active', t === name);
   });
+  if (name === 'stats') loadStats();
 }
 
 // ── 예시 자동 채우기 ──────────────────────────────────────────────────────────
@@ -778,6 +920,71 @@ async function explainCode() {
     document.getElementById('exp-metrics').style.display = 'flex';
     document.getElementById('exp-latency').textContent = Math.round(d.latency_ms).toLocaleString();
   });
+}
+
+// ── 통계 ──────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const d = await fetch(`${API}/stats`).then(r => r.json());
+
+    // 요약
+    setText('st-total-calls',  d.total.calls.toLocaleString());
+    setText('st-total-tokens', d.total.total_tokens.toLocaleString());
+    setText('st-total-cost',   '$' + d.total.cost_usd.toFixed(4));
+    setText('st-monthly',      '$' + d.projection.projected_monthly_usd.toFixed(4));
+
+    // 오늘
+    setText('st-today-calls',  d.today.calls.toLocaleString());
+    setText('st-today-input',  d.today.input_tokens.toLocaleString());
+    setText('st-today-output', d.today.output_tokens.toLocaleString());
+    setText('st-today-cost',   '$' + d.today.cost_usd.toFixed(6));
+    setText('st-avg-daily',    '$' + d.projection.avg_daily_cost_usd.toFixed(6));
+
+    // 기능별
+    const typeEl = document.getElementById('st-by-type');
+    const typeTotal = Object.values(d.by_type).reduce((a, b) => a + b, 0) || 1;
+    const typeLabels = { function: '함수 생성', class: '클래스 생성', tests: '테스트 생성', unknown: '기타' };
+    typeEl.innerHTML = Object.entries(d.by_type).length
+      ? Object.entries(d.by_type).map(([k, v]) =>
+          `<div class="type-row">
+            <span class="type-name">${typeLabels[k] || k}</span>
+            <div class="type-bar-wrap"><div class="type-bar" style="width:${(v/typeTotal*100).toFixed(1)}%"></div></div>
+            <span class="type-count">${v}</span>
+          </div>`).join('')
+      : '<div class="no-data">데이터 없음</div>';
+
+    // 모델별
+    const modelEl = document.getElementById('st-by-model');
+    const maxTokens = Math.max(...Object.values(d.by_model).map(m => m.total_tokens), 1);
+    modelEl.innerHTML = Object.entries(d.by_model).length
+      ? Object.entries(d.by_model).map(([mid, m]) =>
+          `<div class="model-row">
+            <span class="model-row-name">${mid.split('/').pop()}</span>
+            <div class="model-row-bar-wrap"><div class="model-row-bar" style="width:${(m.total_tokens/maxTokens*100).toFixed(1)}%"></div></div>
+            <span class="model-row-stat">${m.total_tokens.toLocaleString()} tk · $${m.cost_usd.toFixed(6)}</span>
+          </div>`).join('')
+      : '<div class="no-data">데이터 없음</div>';
+
+    // 트렌드
+    const trendEl = document.getElementById('st-trend');
+    const maxTrendTokens = Math.max(...d.daily_trend.map(r => r.tokens), 1);
+    trendEl.innerHTML = d.daily_trend.length
+      ? d.daily_trend.map(r =>
+          `<div class="trend-row">
+            <span class="trend-date">${r.date}</span>
+            <div class="trend-bar-wrap"><div class="trend-bar" style="width:${(r.tokens/maxTrendTokens*100).toFixed(1)}%"></div></div>
+            <span class="trend-stat">${r.calls}회 · ${r.tokens.toLocaleString()} tk · $${r.cost.toFixed(6)}</span>
+          </div>`).join('')
+      : '<div class="no-data">데이터 없음</div>';
+
+  } catch {
+    document.getElementById('st-total-calls').textContent = '서버 오프라인';
+  }
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
 }
 
 // Init

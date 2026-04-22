@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from watsonx_client import WatsonxClient, SUPPORTED_MODELS, DEFAULT_MODEL_KEY
 from code_validator import validate
+from token_tracker import load_stats
 from prompt_templates import (
     build_class_prompt,
     build_explain_prompt,
@@ -157,6 +158,11 @@ def validate_code(req: ValidateRequest):
         "confidence_score": result.confidence_score,
         "error": result.error,
     }
+
+
+@app.get("/stats")
+def get_stats():
+    return load_stats()
 
 
 @app.post("/explain")
