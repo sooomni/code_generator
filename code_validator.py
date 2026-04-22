@@ -16,7 +16,7 @@ DANGEROUS_PATTERNS: list[tuple[str, str, SeverityLevel]] = [
     # HIGH — deserialization / injection
     (r"pickle\.loads?\s*\(",                      "pickle deserialization",           "HIGH"),
     (r"yaml\.load\s*\([^)]*\)",                   "yaml.load() without Loader",      "HIGH"),
-    (r"""(?:execute|executemany)\s*\(\s*[f"'].*%|\.format\(|f["']""",
+    (r"""(?:execute|executemany)\s*\([^)]*(?:%[^%]|\.format\s*\(|f["'])""",
                                                   "potential SQL injection",          "HIGH"),
     # MEDIUM — data exposure / weak crypto
     (r"hashlib\.(md5|sha1)\s*\(",                 "weak hashing algorithm",          "MEDIUM"),
