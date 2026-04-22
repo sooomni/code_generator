@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Code Generator — IBM watsonx</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+
+  header {
+    background: linear-gradient(135deg, #1a1f2e 0%, #0f1117 100%);
+    border-bottom: 1px solid #2d3748;
+    padding: 20px 40px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  header img { width: 36px; }
+  header h1 { font-size: 1.4rem; font-weight: 600; color: #fff; }
+  header span { font-size: 0.85rem; color: #718096; margin-left: 4px; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 36px 24px; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 28px; }
+  .tab {
+    padding: 10px 22px; border-radius: 8px; cursor: pointer;
+    font-size: 0.9rem; font-weight: 500; border: 1px solid transparent;
+    color: #718096; transition: all .2s;
+  }
+  .tab:hover { color: #e2e8f0; background: #1a1f2e; }
+  .tab.active { background: #1e40af; color: #fff; border-color: #3b82f6; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+  .card {
+    background: #1a1f2e; border: 1px solid #2d3748; border-radius: 12px; padding: 24px;
+  }
+  .card h2 { font-size: 1rem; font-weight: 600; color: #a0aec0; margin-bottom: 18px; letter-spacing: .05em; text-transform: uppercase; font-size: .8rem; }
+
+  label { display: block; font-size: .85rem; color: #a0aec0; margin-bottom: 6px; margin-top: 14px; }
+  label:first-of-type { margin-top: 0; }
+
+  input, textarea {
+    width: 100%; padding: 10px 14px; border-radius: 8px;
+    background: #0f1117; border: 1px solid #2d3748; color: #e2e8f0;
+    font-size: .9rem; outline: none; transition: border .2s; font-family: inherit;
+  }
+  input:focus, textarea:focus { border-color: #3b82f6; }
+  textarea { resize: vertical; min-height: 80px; }
+
+  button.generate {
+    margin-top: 20px; width: 100%; padding: 12px;
+    background: linear-gradient(135deg, #1e40af, #3b82f6);
+    color: #fff; border: none; border-radius: 8px; font-size: .95rem;
+    font-weight: 600; cursor: pointer; transition: opacity .2s; letter-spacing: .02em;
+  }
+  button.generate:hover { opacity: .88; }
+  button.generate:disabled { opacity: .45; cursor: not-allowed; }
+
+  .output-card {
+    background: #1a1f2e; border: 1px solid #2d3748; border-radius: 12px; overflow: hidden;
+  }
+  .output-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-bottom: 1px solid #2d3748; background: #161b27;
+  }
+  .output-header span { font-size: .85rem; color: #a0aec0; }
+  .badges { display: flex; gap: 8px; }
+  .badge {
+    padding: 3px 10px; border-radius: 20px; font-size: .75rem; font-weight: 600;
+  }
+  .badge.green { background: #064e3b; color: #6ee7b7; }
+  .badge.red { background: #7f1d1d; color: #fca5a5; }
+  .badge.blue { background: #1e3a5f; color: #93c5fd; }
+  .badge.gray { background: #1f2937; color: #9ca3af; }
+
+  pre {
+    padding: 20px; font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: .85rem; line-height: 1.7; overflow-x: auto; white-space: pre-wrap;
+    min-height: 200px; color: #e2e8f0;
+  }
+  .placeholder { color: #4a5568; font-style: italic; font-family: inherit; }
+
+  .metrics {
+    display: flex; gap: 16px; padding: 14px 20px;
+    border-top: 1px solid #2d3748; background: #161b27;
+  }
+  .metric { text-align: center; }
+  .metric .val { font-size: 1.3rem; font-weight: 700; color: #60a5fa; }
+  .metric .lbl { font-size: .7rem; color: #718096; margin-top: 2px; }
+
+  .spinner {
+    display: inline-block; width: 16px; height: 16px; margin-right: 8px;
+    border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
+    border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .copy-btn {
+    background: transparent; border: 1px solid #2d3748; color: #a0aec0;
+    padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: .75rem;
+    transition: all .2s;
+  }
+  .copy-btn:hover { border-color: #3b82f6; color: #60a5fa; }
+
+  .issues { padding: 14px 20px; border-top: 1px solid #2d3748; }
+  .issue-item { font-size: .82rem; color: #fca5a5; margin-bottom: 4px; }
+  .issue-item::before { content: "⚠ "; }
+  .note-item { font-size: .82rem; color: #fcd34d; margin-bottom: 4px; }
+  .note-item::before { content: "💡 "; }
+
+  .status-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #161b27; border-top: 1px solid #2d3748;
+    padding: 6px 24px; display: flex; gap: 24px; align-items: center;
+  }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block; margin-right: 6px; }
+  .status-dot.off { background: #ef4444; }
+  .status-text { font-size: .78rem; color: #718096; }
+  .status-model { font-size: .78rem; color: #4a5568; }
+
+  @media (max-width: 768px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+    <rect width="36" height="36" rx="8" fill="#1e40af"/>
+    <text x="7" y="26" font-size="20" fill="white">⚡</text>
+  </svg>
+  <div>
+    <h1>AI Code Generator <span>powered by IBM watsonx</span></h1>
+  </div>
+</header>
+
+<div class="container">
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('function')">Function</div>
+    <div class="tab" onclick="switchTab('class')">Class</div>
+    <div class="tab" onclick="switchTab('tests')">Tests</div>
+    <div class="tab" onclick="switchTab('validate')">Validate</div>
+    <div class="tab" onclick="switchTab('explain')">Explain</div>
+  </div>
+
+  <!-- FUNCTION -->
+  <div class="panel active" id="panel-function">
+    <div class="grid">
+      <div class="card">
+        <h2>Input</h2>
+        <label>Function Name</label>
+        <input id="fn-name" placeholder="e.g. calculate_discount" />
+        <label>Description</label>
+        <textarea id="fn-desc" placeholder="e.g. Calculate discount percentage based on original price and customer tier (bronze/silver/gold)"></textarea>
+        <label>Context (optional)</label>
+        <textarea id="fn-ctx" placeholder="Paste surrounding code for better results..." style="min-height:60px"></textarea>
+        <button class="generate" onclick="generateFunction()">⚡ Generate Function</button>
+      </div>
+      <div class="output-card">
+        <div class="output-header">
+          <span>Generated Code</span>
+          <div class="badges" id="fn-badges"></div>
+          <button class="copy-btn" onclick="copyCode('fn-code')">Copy</button>
+        </div>
+        <pre id="fn-code"><span class="placeholder">// Generated code will appear here...</span></pre>
+        <div id="fn-issues"></div>
+        <div class="metrics" id="fn-metrics" style="display:none">
+          <div class="metric"><div class="val" id="fn-latency">-</div><div class="lbl">Latency (ms)</div></div>
+          <div class="metric"><div class="val" id="fn-tokens">-</div><div class="lbl">Tokens</div></div>
+          <div class="metric"><div class="val" id="fn-quality">-</div><div class="lbl">Quality %</div></div>
+          <div class="metric"><div class="val" id="fn-confidence">-</div><div class="lbl">Confidence %</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLASS -->
+  <div class="panel" id="panel-class">
+    <div class="grid">
+      <div class="card">
+        <h2>Input</h2>
+        <label>Class Name</label>
+        <input id="cls-name" placeholder="e.g. UserRepository" />
+        <label>Description</label>
+        <textarea id="cls-desc" placeholder="e.g. Manages user CRUD operations against a PostgreSQL database"></textarea>
+        <label>Methods (comma-separated, optional)</label>
+        <input id="cls-methods" placeholder="e.g. get_by_id, create, update, delete" />
+        <button class="generate" onclick="generateClass()">⚡ Generate Class</button>
+      </div>
+      <div class="output-card">
+        <div class="output-header">
+          <span>Generated Code</span>
+          <div class="badges" id="cls-badges"></div>
+          <button class="copy-btn" onclick="copyCode('cls-code')">Copy</button>
+        </div>
+        <pre id="cls-code"><span class="placeholder">// Generated code will appear here...</span></pre>
+        <div id="cls-issues"></div>
+        <div class="metrics" id="cls-metrics" style="display:none">
+          <div class="metric"><div class="val" id="cls-latency">-</div><div class="lbl">Latency (ms)</div></div>
+          <div class="metric"><div class="val" id="cls-tokens">-</div><div class="lbl">Tokens</div></div>
+          <div class="metric"><div class="val" id="cls-quality">-</div><div class="lbl">Quality %</div></div>
+          <div class="metric"><div class="val" id="cls-confidence">-</div><div class="lbl">Confidence %</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TESTS -->
+  <div class="panel" id="panel-tests">
+    <div class="grid">
+      <div class="card">
+        <h2>Input</h2>
+        <label>Source Code</label>
+        <textarea id="test-src" style="min-height:200px" placeholder="Paste your Python function or class here..."></textarea>
+        <button class="generate" onclick="generateTests()">⚡ Generate Tests</button>
+      </div>
+      <div class="output-card">
+        <div class="output-header">
+          <span>Generated Tests</span>
+          <div class="badges" id="test-badges"></div>
+          <button class="copy-btn" onclick="copyCode('test-code')">Copy</button>
+        </div>
+        <pre id="test-code"><span class="placeholder">// pytest code will appear here...</span></pre>
+        <div id="test-issues"></div>
+        <div class="metrics" id="test-metrics" style="display:none">
+          <div class="metric"><div class="val" id="test-latency">-</div><div class="lbl">Latency (ms)</div></div>
+          <div class="metric"><div class="val" id="test-tokens">-</div><div class="lbl">Tokens</div></div>
+          <div class="metric"><div class="val" id="test-quality">-</div><div class="lbl">Quality %</div></div>
+          <div class="metric"><div class="val" id="test-confidence">-</div><div class="lbl">Confidence %</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VALIDATE -->
+  <div class="panel" id="panel-validate">
+    <div class="grid">
+      <div class="card">
+        <h2>Input</h2>
+        <label>Python Code</label>
+        <textarea id="val-code" style="min-height:240px" placeholder="Paste Python code to validate..."></textarea>
+        <button class="generate" onclick="validateCode()">🔍 Validate Code</button>
+      </div>
+      <div class="output-card">
+        <div class="output-header">
+          <span>Validation Result</span>
+          <div class="badges" id="val-badges"></div>
+        </div>
+        <pre id="val-result"><span class="placeholder">// Validation results will appear here...</span></pre>
+        <div id="val-issues"></div>
+        <div class="metrics" id="val-metrics" style="display:none">
+          <div class="metric"><div class="val" id="val-quality">-</div><div class="lbl">Quality %</div></div>
+          <div class="metric"><div class="val" id="val-confidence">-</div><div class="lbl">Confidence %</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPLAIN -->
+  <div class="panel" id="panel-explain">
+    <div class="grid">
+      <div class="card">
+        <h2>Input</h2>
+        <label>Code to Explain</label>
+        <textarea id="exp-src" style="min-height:240px" placeholder="Paste Python code to explain..."></textarea>
+        <button class="generate" onclick="explainCode()">💬 Explain Code</button>
+      </div>
+      <div class="output-card">
+        <div class="output-header"><span>Explanation</span></div>
+        <pre id="exp-result" style="white-space:pre-wrap"><span class="placeholder">// Explanation will appear here...</span></pre>
+        <div class="metrics" id="exp-metrics" style="display:none">
+          <div class="metric"><div class="val" id="exp-latency">-</div><div class="lbl">Latency (ms)</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div>
+    <span class="status-dot" id="status-dot"></span>
+    <span class="status-text" id="status-text">Checking server...</span>
+  </div>
+  <span class="status-model" id="status-model"></span>
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    const tabs = ['function','class','tests','validate','explain'];
+    t.classList.toggle('active', tabs[i] === name);
+  });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+// ── Health check ──────────────────────────────────────────────────────────────
+async function checkHealth() {
+  try {
+    const r = await fetch(`${API}/health`);
+    const dot = document.getElementById('status-dot');
+    const txt = document.getElementById('status-text');
+    const mdl = document.getElementById('status-model');
+    if (r.ok) {
+      const d = await r.json();
+      dot.classList.remove('off');
+      txt.textContent = 'Server running';
+      mdl.textContent = `Model: ${d.model}`;
+    } else { throw new Error(); }
+  } catch {
+    document.getElementById('status-dot').classList.add('off');
+    document.getElementById('status-text').textContent = 'Server offline — run: python main.py';
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function setLoading(btnEl, loading) {
+  if (loading) {
+    btnEl.disabled = true;
+    btnEl.innerHTML = '<span class="spinner"></span>Generating...';
+  } else {
+    btnEl.disabled = false;
+    btnEl.innerHTML = btnEl.dataset.label;
+  }
+}
+
+function renderResult(prefix, data) {
+  document.getElementById(`${prefix}-code`).textContent = data.code;
+  document.getElementById(`${prefix}-metrics`).style.display = 'flex';
+  document.getElementById(`${prefix}-latency`).textContent = Math.round(data.latency_ms);
+  document.getElementById(`${prefix}-tokens`).textContent = data.tokens_used;
+  document.getElementById(`${prefix}-quality`).textContent = data.validation.quality_score;
+  document.getElementById(`${prefix}-confidence`).textContent = data.confidence_score;
+
+  const v = data.validation;
+  const badgesEl = document.getElementById(`${prefix}-badges`);
+  badgesEl.innerHTML = '';
+  badgesEl.innerHTML += `<span class="badge ${v.syntax_ok ? 'green' : 'red'}">${v.syntax_ok ? '✓ Syntax OK' : '✗ Syntax Error'}</span>`;
+  if (v.security_issues.length === 0) badgesEl.innerHTML += `<span class="badge green">✓ Secure</span>`;
+  else badgesEl.innerHTML += `<span class="badge red">⚠ ${v.security_issues.length} Security Issue(s)</span>`;
+  badgesEl.innerHTML += `<span class="badge blue">Score ${data.confidence_score}%</span>`;
+
+  const issuesEl = document.getElementById(`${prefix}-issues`);
+  issuesEl.innerHTML = '';
+  if (v.security_issues.length || v.quality_notes.length) {
+    issuesEl.className = 'issues';
+    v.security_issues.forEach(i => { issuesEl.innerHTML += `<div class="issue-item">${i}</div>`; });
+    v.quality_notes.forEach(n => { issuesEl.innerHTML += `<div class="note-item">${n}</div>`; });
+  }
+}
+
+function copyCode(id) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target; btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1500);
+  });
+}
+
+// ── API calls ─────────────────────────────────────────────────────────────────
+async function generateFunction() {
+  const btn = document.querySelector('#panel-function .generate');
+  btn.dataset.label = btn.innerHTML;
+  setLoading(btn, true);
+  try {
+    const r = await fetch(`${API}/generate/function`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        function_name: document.getElementById('fn-name').value,
+        description: document.getElementById('fn-desc').value,
+        context: document.getElementById('fn-ctx').value,
+      })
+    });
+    if (!r.ok) throw new Error((await r.json()).detail);
+    renderResult('fn', await r.json());
+  } catch(e) { alert('Error: ' + e.message); }
+  finally { setLoading(btn, false); }
+}
+
+async function generateClass() {
+  const btn = document.querySelector('#panel-class .generate');
+  btn.dataset.label = btn.innerHTML;
+  setLoading(btn, true);
+  try {
+    const methods = document.getElementById('cls-methods').value.split(',').map(m => m.trim()).filter(Boolean);
+    const r = await fetch(`${API}/generate/class`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        class_name: document.getElementById('cls-name').value,
+        description: document.getElementById('cls-desc').value,
+        methods,
+      })
+    });
+    if (!r.ok) throw new Error((await r.json()).detail);
+    renderResult('cls', await r.json());
+  } catch(e) { alert('Error: ' + e.message); }
+  finally { setLoading(btn, false); }
+}
+
+async function generateTests() {
+  const btn = document.querySelector('#panel-tests .generate');
+  btn.dataset.label = btn.innerHTML;
+  setLoading(btn, true);
+  try {
+    const r = await fetch(`${API}/generate/tests`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ source_code: document.getElementById('test-src').value })
+    });
+    if (!r.ok) throw new Error((await r.json()).detail);
+    renderResult('test', await r.json());
+  } catch(e) { alert('Error: ' + e.message); }
+  finally { setLoading(btn, false); }
+}
+
+async function validateCode() {
+  const btn = document.querySelector('#panel-validate .generate');
+  btn.dataset.label = btn.innerHTML;
+  setLoading(btn, true);
+  try {
+    const r = await fetch(`${API}/validate`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ code: document.getElementById('val-code').value })
+    });
+    if (!r.ok) throw new Error((await r.json()).detail);
+    const d = await r.json();
+
+    document.getElementById('val-result').textContent =
+      d.syntax_ok ? '✓ Syntax valid' : `✗ ${d.error}`;
+
+    document.getElementById('val-metrics').style.display = 'flex';
+    document.getElementById('val-quality').textContent = d.quality_score;
+    document.getElementById('val-confidence').textContent = d.confidence_score;
+
+    const badgesEl = document.getElementById('val-badges');
+    badgesEl.innerHTML = `<span class="badge ${d.syntax_ok ? 'green' : 'red'}">${d.syntax_ok ? '✓ Syntax OK' : '✗ Syntax Error'}</span>`;
+    if (!d.security_issues.length) badgesEl.innerHTML += `<span class="badge green">✓ Secure</span>`;
+    else badgesEl.innerHTML += `<span class="badge red">⚠ ${d.security_issues.length} Issue(s)</span>`;
+
+    const issuesEl = document.getElementById('val-issues');
+    issuesEl.innerHTML = '';
+    if (d.security_issues.length || d.quality_notes.length) {
+      issuesEl.className = 'issues';
+      d.security_issues.forEach(i => { issuesEl.innerHTML += `<div class="issue-item">${i}</div>`; });
+      d.quality_notes.forEach(n => { issuesEl.innerHTML += `<div class="note-item">${n}</div>`; });
+    }
+  } catch(e) { alert('Error: ' + e.message); }
+  finally { setLoading(btn, false); }
+}
+
+async function explainCode() {
+  const btn = document.querySelector('#panel-explain .generate');
+  btn.dataset.label = btn.innerHTML;
+  setLoading(btn, true);
+  try {
+    const r = await fetch(`${API}/explain`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ source_code: document.getElementById('exp-src').value })
+    });
+    if (!r.ok) throw new Error((await r.json()).detail);
+    const d = await r.json();
+    document.getElementById('exp-result').textContent = d.explanation;
+    document.getElementById('exp-metrics').style.display = 'flex';
+    document.getElementById('exp-latency').textContent = Math.round(d.latency_ms);
+  } catch(e) { alert('Error: ' + e.message); }
+  finally { setLoading(btn, false); }
+}
+
+// Init
+checkHealth();
+setInterval(checkHealth, 10000);
+
+// Save button labels
+document.querySelectorAll('.generate').forEach(b => b.dataset.label = b.innerHTML);
+</script>
+</body>
+</html>
