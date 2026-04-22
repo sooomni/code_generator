@@ -256,25 +256,27 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
 
-  /* ── Model selector ── */
-  .model-selector {
-    display: flex; align-items: center; gap: 8px;
-    padding: 5px 6px 5px 13px; border-radius: 20px;
-    border: 1px solid var(--border); background: var(--surface);
-    font-size: .78rem; color: var(--text-muted);
+  /* ── Model panel (sidebar) ── */
+  .model-panel { padding: 0 4px; }
+  .model-option {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 10px; border-radius: 10px; cursor: pointer;
+    border: 1px solid transparent; transition: all .18s; margin-bottom: 4px;
   }
-  .model-selector select {
-    background: transparent; border: none; outline: none;
-    color: var(--text-dim); font-size: .78rem; cursor: pointer;
-    padding: 0 4px;
+  .model-option:hover { background: var(--surface2); border-color: var(--border); }
+  .model-option.selected {
+    background: var(--accent-glow); border-color: rgba(59,130,246,0.35);
   }
-  .model-selector select option { background: var(--surface2); }
-  .model-tag {
-    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  .model-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
   }
-  .model-tag.granite  { background: #3b82f6; box-shadow: 0 0 5px #3b82f6; }
-  .model-tag.llama    { background: #10b981; box-shadow: 0 0 5px #10b981; }
-  .model-tag.mistral  { background: #f59e0b; box-shadow: 0 0 5px #f59e0b; }
+  .model-dot.granite { background: #3b82f6; box-shadow: 0 0 6px #3b82f6; }
+  .model-dot.llama   { background: #10b981; box-shadow: 0 0 6px #10b981; }
+  .model-dot.mistral { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+  .model-info { flex: 1; }
+  .model-name { font-size: .82rem; color: var(--text); font-weight: 500; }
+  .model-desc { font-size: .7rem; color: var(--text-muted); margin-top: 1px; }
+  .model-check { font-size: .78rem; color: var(--accent); font-weight: 700; width: 14px; text-align: right; }
 
   @media (max-width: 900px) {
     .grid { grid-template-columns: 1fr; }
@@ -294,15 +296,6 @@
     </div>
   </div>
   <div class="header-right">
-    <div class="model-selector">
-      <div class="model-tag granite" id="model-tag"></div>
-      <span style="color:var(--text-muted)">모델</span>
-      <select id="model-select" onchange="onModelChange()">
-        <option value="granite-8b">Granite 8B Code</option>
-        <option value="llama-70b">Llama 3.3 70B</option>
-        <option value="mistral-small">Mistral Small 24B</option>
-      </select>
-    </div>
     <div class="status-pill">
       <div class="dot" id="status-dot"></div>
       <span id="status-text">서버 확인 중...</span>
@@ -332,10 +325,32 @@
       <span class="nav-icon">💬</span> 코드 설명
     </div>
     <div class="sidebar-divider"></div>
-    <div class="shortcut-section">
-      <div class="sidebar-label">단축키</div>
-      <div class="shortcut-item"><span>함수 생성</span><kbd>Ctrl+Shift+K</kbd></div>
-      <div class="shortcut-item"><span>복사</span><kbd>Ctrl+C</kbd></div>
+    <div class="model-panel">
+      <div class="sidebar-label">AI 모델 선택</div>
+      <div class="model-option" data-key="granite-8b" onclick="selectModel('granite-8b')">
+        <div class="model-dot granite"></div>
+        <div class="model-info">
+          <div class="model-name">Granite 8B Code</div>
+          <div class="model-desc">IBM · 코드 특화</div>
+        </div>
+        <div class="model-check" id="check-granite-8b">✓</div>
+      </div>
+      <div class="model-option" data-key="llama-70b" onclick="selectModel('llama-70b')">
+        <div class="model-dot llama"></div>
+        <div class="model-info">
+          <div class="model-name">Llama 3.3 70B</div>
+          <div class="model-desc">Meta · 범용 대형</div>
+        </div>
+        <div class="model-check" id="check-llama-70b"></div>
+      </div>
+      <div class="model-option" data-key="mistral-small" onclick="selectModel('mistral-small')">
+        <div class="model-dot mistral"></div>
+        <div class="model-info">
+          <div class="model-name">Mistral Small 24B</div>
+          <div class="model-desc">Mistral · 경량 고성능</div>
+        </div>
+        <div class="model-check" id="check-mistral-small"></div>
+      </div>
     </div>
   </aside>
 
@@ -588,16 +603,20 @@ function fillValidate(code) { document.getElementById('val-code').value = code; 
 function fillExplain(code) { document.getElementById('exp-src').value = code; }
 
 // ── 모델 선택 ─────────────────────────────────────────────────────────────────
-const MODEL_COLORS = { 'granite-8b': 'granite', 'llama-70b': 'llama', 'mistral-small': 'mistral' };
+let _selectedModel = 'granite-8b';
 
-function getModel() {
-  return document.getElementById('model-select').value;
-}
+function getModel() { return _selectedModel; }
 
-function onModelChange() {
-  const key = getModel();
-  const tag = document.getElementById('model-tag');
-  tag.className = 'model-tag ' + (MODEL_COLORS[key] || 'granite');
+function selectModel(key) {
+  _selectedModel = key;
+  document.querySelectorAll('.model-option').forEach(el => {
+    const isSelected = el.dataset.key === key;
+    el.classList.toggle('selected', isSelected);
+  });
+  ['granite-8b', 'llama-70b', 'mistral-small'].forEach(k => {
+    const el = document.getElementById('check-' + k);
+    if (el) el.textContent = k === key ? '✓' : '';
+  });
 }
 
 // ── 서버 상태 확인 ────────────────────────────────────────────────────────────
@@ -764,7 +783,7 @@ async function explainCode() {
 // Init
 checkHealth();
 setInterval(checkHealth, 10000);
-onModelChange();
+selectModel('granite-8b');
 </script>
 </body>
 </html>
