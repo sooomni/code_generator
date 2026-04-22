@@ -306,25 +306,6 @@
 <div class="layout">
   <!-- ── Sidebar ── -->
   <aside class="sidebar">
-    <div class="sidebar-label">기능</div>
-    <div class="nav-item active" onclick="switchTab('function')" id="nav-function">
-      <span class="nav-icon">𝑓</span> 함수 생성 <span class="nav-badge">Hot</span>
-    </div>
-    <div class="nav-item" onclick="switchTab('class')" id="nav-class">
-      <span class="nav-icon">◻</span> 클래스 생성
-    </div>
-    <div class="nav-item" onclick="switchTab('tests')" id="nav-tests">
-      <span class="nav-icon">✓</span> 테스트 생성
-    </div>
-    <div class="sidebar-divider"></div>
-    <div class="sidebar-label">분석</div>
-    <div class="nav-item" onclick="switchTab('validate')" id="nav-validate">
-      <span class="nav-icon">🔍</span> 코드 검증
-    </div>
-    <div class="nav-item" onclick="switchTab('explain')" id="nav-explain">
-      <span class="nav-icon">💬</span> 코드 설명
-    </div>
-    <div class="sidebar-divider"></div>
     <div class="model-panel">
       <div class="sidebar-label">AI 모델 선택</div>
       <div class="model-option" data-key="granite-8b" onclick="selectModel('granite-8b')">
@@ -351,6 +332,25 @@
         </div>
         <div class="model-check" id="check-mistral-small"></div>
       </div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-label">기능</div>
+    <div class="nav-item active" onclick="switchTab('function')" id="nav-function">
+      <span class="nav-icon">𝑓</span> 함수 생성 <span class="nav-badge">Hot</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('class')" id="nav-class">
+      <span class="nav-icon">◻</span> 클래스 생성
+    </div>
+    <div class="nav-item" onclick="switchTab('tests')" id="nav-tests">
+      <span class="nav-icon">✓</span> 테스트 생성
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-label">분석</div>
+    <div class="nav-item" onclick="switchTab('validate')" id="nav-validate">
+      <span class="nav-icon">🔍</span> 코드 검증
+    </div>
+    <div class="nav-item" onclick="switchTab('explain')" id="nav-explain">
+      <span class="nav-icon">💬</span> 코드 설명
     </div>
   </aside>
 
