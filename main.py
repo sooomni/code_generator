@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from bedrock_client import BedrockClient
+from watsonx_client import WatsonxClient
 from code_validator import validate
 from prompt_templates import (
     build_class_prompt,
@@ -39,7 +39,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-bedrock = BedrockClient()
+watsonx = WatsonxClient()
 
 # ── Request / Response models ─────────────────────────────────────────────────
 class GenerateFunctionRequest(BaseModel):
@@ -87,7 +87,7 @@ def _log_generation(request_type: str, result, validation) -> None:
 
 
 def _generate_and_respond(prompt: str, request_type: str) -> GenerateResponse:
-    result = bedrock.generate_code(prompt)
+    result = watsonx.generate_code(prompt)
     if result.error:
         raise HTTPException(status_code=502, detail=result.error)
 
@@ -113,7 +113,7 @@ def _generate_and_respond(prompt: str, request_type: str) -> GenerateResponse:
 # ── Routes ────────────────────────────────────────────────────────────────────
 @app.get("/health")
 def health():
-    return {"status": "ok", "model": "anthropic.claude-3-5-sonnet-20241022-v2:0"}
+    return {"status": "ok", "model": "ibm/granite-8b-code-instruct"}
 
 
 @app.post("/generate/function", response_model=GenerateResponse)
@@ -150,7 +150,7 @@ def validate_code(req: ValidateRequest):
 
 @app.post("/explain")
 def explain_code(req: ExplainRequest):
-    result = bedrock.generate_code(build_explain_prompt(req.source_code), temperature=0.1)
+    result = watsonx.generate_code(build_explain_prompt(req.source_code), temperature=0.1)
     if result.error:
         raise HTTPException(status_code=502, detail=result.error)
     return {"explanation": result.code, "latency_ms": result.latency_ms}
