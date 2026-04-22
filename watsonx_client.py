@@ -3,7 +3,10 @@ import os
 import time
 from dataclasses import dataclass
 
+from dotenv import load_dotenv
 from ibm_watsonx_ai import APIClient, Credentials
+
+load_dotenv()
 from ibm_watsonx_ai.foundation_models import ModelInference
 from ibm_watsonx_ai.foundation_models.schema import TextGenParameters
 
@@ -34,6 +37,7 @@ class WatsonxClient:
     ):
         api_key = api_key or os.environ["WATSONX_API_KEY"]
         project_id = project_id or os.environ["WATSONX_PROJECT_ID"]
+        url = os.environ.get("WATSONX_URL", url)
 
         credentials = Credentials(url=url, api_key=api_key)
         self._client = APIClient(credentials)
