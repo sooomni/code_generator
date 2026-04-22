@@ -3,481 +3,722 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Code Generator — IBM watsonx</title>
+<title>AI 코드 생성기 — IBM watsonx</title>
 <style>
+  :root {
+    --bg: #070b14;
+    --surface: #0d1321;
+    --surface2: #111827;
+    --border: #1e2d45;
+    --border-light: #243552;
+    --accent: #3b82f6;
+    --accent2: #6366f1;
+    --accent-glow: rgba(59,130,246,0.15);
+    --green: #10b981;
+    --green-bg: #052e16;
+    --red: #ef4444;
+    --red-bg: #450a0a;
+    --yellow: #f59e0b;
+    --text: #e2e8f0;
+    --text-muted: #64748b;
+    --text-dim: #94a3b8;
+    --font-mono: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+  body {
+    font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; overflow-x: hidden;
+  }
 
+  /* ── Header ── */
   header {
-    background: linear-gradient(135deg, #1a1f2e 0%, #0f1117 100%);
-    border-bottom: 1px solid #2d3748;
-    padding: 20px 40px;
-    display: flex; align-items: center; gap: 16px;
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(7,11,20,0.85); backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px; height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
   }
-  header img { width: 36px; }
-  header h1 { font-size: 1.4rem; font-weight: 600; color: #fff; }
-  header span { font-size: 0.85rem; color: #718096; margin-left: 4px; }
-
-  .container { max-width: 1100px; margin: 0 auto; padding: 36px 24px; }
-
-  .tabs { display: flex; gap: 4px; margin-bottom: 28px; }
-  .tab {
-    padding: 10px 22px; border-radius: 8px; cursor: pointer;
-    font-size: 0.9rem; font-weight: 500; border: 1px solid transparent;
-    color: #718096; transition: all .2s;
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: linear-gradient(135deg, #1d4ed8, #6366f1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; box-shadow: 0 0 20px rgba(99,102,241,0.4);
   }
-  .tab:hover { color: #e2e8f0; background: #1a1f2e; }
-  .tab.active { background: #1e40af; color: #fff; border-color: #3b82f6; }
+  .logo-text { font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: -.01em; }
+  .logo-sub { font-size: .75rem; color: var(--text-muted); margin-top: 1px; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .status-pill {
+    display: flex; align-items: center; gap: 7px;
+    padding: 5px 13px; border-radius: 20px;
+    border: 1px solid var(--border); background: var(--surface);
+    font-size: .78rem; color: var(--text-muted);
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0; }
+  .dot.online { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse-dot 2s infinite; }
+  .dot.offline { background: var(--red); }
+  @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+  /* ── Layout ── */
+  .layout { display: flex; height: calc(100vh - 60px); }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 220px; flex-shrink: 0;
+    background: var(--surface); border-right: 1px solid var(--border);
+    padding: 20px 12px; display: flex; flex-direction: column; gap: 4px;
+    overflow-y: auto;
+  }
+  .sidebar-label {
+    font-size: .68rem; font-weight: 600; letter-spacing: .1em;
+    color: var(--text-muted); padding: 4px 10px 10px; text-transform: uppercase;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 8px; cursor: pointer;
+    font-size: .88rem; color: var(--text-dim); transition: all .18s;
+    border: 1px solid transparent;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active {
+    background: var(--accent-glow); color: var(--accent);
+    border-color: rgba(59,130,246,0.3);
+  }
+  .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+  .nav-badge {
+    margin-left: auto; font-size: .65rem; padding: 1px 7px;
+    border-radius: 10px; background: rgba(99,102,241,0.2); color: #818cf8;
+  }
+  .sidebar-divider { height: 1px; background: var(--border); margin: 8px 4px; }
+
+  /* ── Shortcuts ── */
+  .shortcut-section { margin-top: auto; padding-top: 16px; }
+  .shortcut-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 10px; font-size: .75rem; color: var(--text-muted);
+  }
+  kbd {
+    background: var(--surface2); border: 1px solid var(--border-light);
+    border-radius: 4px; padding: 1px 6px; font-size: .7rem;
+    font-family: var(--font-mono); color: var(--text-dim);
+  }
+
+  /* ── Main ── */
+  .main { flex: 1; overflow-y: auto; padding: 28px 32px 80px; }
 
   .panel { display: none; }
   .panel.active { display: block; }
 
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .panel-header { margin-bottom: 24px; }
+  .panel-title { font-size: 1.3rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .panel-desc { font-size: .85rem; color: var(--text-muted); }
 
+  /* ── Grid ── */
+  .grid { display: grid; grid-template-columns: 1fr 1.1fr; gap: 20px; }
+
+  /* ── Card ── */
   .card {
-    background: #1a1f2e; border: 1px solid #2d3748; border-radius: 12px; padding: 24px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 22px; transition: border-color .2s;
   }
-  .card h2 { font-size: 1rem; font-weight: 600; color: #a0aec0; margin-bottom: 18px; letter-spacing: .05em; text-transform: uppercase; font-size: .8rem; }
-
-  label { display: block; font-size: .85rem; color: #a0aec0; margin-bottom: 6px; margin-top: 14px; }
-  label:first-of-type { margin-top: 0; }
-
-  input, textarea {
-    width: 100%; padding: 10px 14px; border-radius: 8px;
-    background: #0f1117; border: 1px solid #2d3748; color: #e2e8f0;
-    font-size: .9rem; outline: none; transition: border .2s; font-family: inherit;
+  .card:hover { border-color: var(--border-light); }
+  .card-title {
+    font-size: .72rem; font-weight: 600; letter-spacing: .08em;
+    color: var(--text-muted); text-transform: uppercase; margin-bottom: 18px;
+    display: flex; align-items: center; gap: 8px;
   }
-  input:focus, textarea:focus { border-color: #3b82f6; }
-  textarea { resize: vertical; min-height: 80px; }
+  .card-title::after { content:''; flex:1; height:1px; background: var(--border); }
 
-  button.generate {
-    margin-top: 20px; width: 100%; padding: 12px;
-    background: linear-gradient(135deg, #1e40af, #3b82f6);
-    color: #fff; border: none; border-radius: 8px; font-size: .95rem;
-    font-weight: 600; cursor: pointer; transition: opacity .2s; letter-spacing: .02em;
+  /* ── Form ── */
+  .field { margin-bottom: 16px; }
+  .field:last-of-type { margin-bottom: 0; }
+  label { display: block; font-size: .82rem; color: var(--text-dim); margin-bottom: 6px; font-weight: 500; }
+  input, textarea, select {
+    width: 100%; padding: 10px 14px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 9px; color: var(--text); font-size: .88rem;
+    outline: none; transition: border-color .2s, box-shadow .2s;
+    font-family: inherit;
   }
-  button.generate:hover { opacity: .88; }
-  button.generate:disabled { opacity: .45; cursor: not-allowed; }
+  input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+  textarea { resize: vertical; min-height: 90px; line-height: 1.6; }
+  input::placeholder, textarea::placeholder { color: var(--text-muted); }
 
+  /* ── Example chips ── */
+  .examples { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip {
+    padding: 4px 11px; border-radius: 20px; font-size: .75rem;
+    border: 1px solid var(--border-light); color: var(--text-dim);
+    cursor: pointer; transition: all .15s; background: var(--surface2);
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+
+  /* ── Generate button ── */
+  .btn-generate {
+    width: 100%; margin-top: 18px; padding: 12px;
+    background: linear-gradient(135deg, #1d4ed8, #6366f1);
+    color: #fff; border: none; border-radius: 10px;
+    font-size: .95rem; font-weight: 600; cursor: pointer;
+    transition: opacity .2s, transform .1s; letter-spacing: .01em;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-generate:hover { opacity: .9; transform: translateY(-1px); }
+  .btn-generate:active { transform: translateY(0); }
+  .btn-generate:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+  /* ── Output card ── */
   .output-card {
-    background: #1a1f2e; border: 1px solid #2d3748; border-radius: 12px; overflow: hidden;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden; display: flex; flex-direction: column;
   }
   .output-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 20px; border-bottom: 1px solid #2d3748; background: #161b27;
+    padding: 12px 18px; border-bottom: 1px solid var(--border);
+    background: var(--surface2); flex-wrap: wrap; gap: 8px;
   }
-  .output-header span { font-size: .85rem; color: #a0aec0; }
-  .badges { display: flex; gap: 8px; }
+  .output-title { font-size: .82rem; color: var(--text-dim); font-weight: 500; }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; }
   .badge {
-    padding: 3px 10px; border-radius: 20px; font-size: .75rem; font-weight: 600;
+    padding: 3px 10px; border-radius: 20px; font-size: .72rem; font-weight: 600;
+    display: flex; align-items: center; gap: 4px;
   }
-  .badge.green { background: #064e3b; color: #6ee7b7; }
-  .badge.red { background: #7f1d1d; color: #fca5a5; }
-  .badge.blue { background: #1e3a5f; color: #93c5fd; }
-  .badge.gray { background: #1f2937; color: #9ca3af; }
+  .badge.green { background: var(--green-bg); color: #4ade80; border: 1px solid rgba(74,222,128,.2); }
+  .badge.red { background: var(--red-bg); color: #f87171; border: 1px solid rgba(248,113,113,.2); }
+  .badge.blue { background: rgba(59,130,246,.1); color: #60a5fa; border: 1px solid rgba(96,165,250,.2); }
+  .badge.purple { background: rgba(99,102,241,.1); color: #a5b4fc; border: 1px solid rgba(165,180,252,.2); }
 
+  .code-wrap { flex: 1; position: relative; }
   pre {
-    padding: 20px; font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
-    font-size: .85rem; line-height: 1.7; overflow-x: auto; white-space: pre-wrap;
-    min-height: 200px; color: #e2e8f0;
+    padding: 20px; font-family: var(--font-mono);
+    font-size: .82rem; line-height: 1.75; overflow-x: auto;
+    white-space: pre; min-height: 200px; color: #c9d1d9;
+    tab-size: 4;
   }
-  .placeholder { color: #4a5568; font-style: italic; font-family: inherit; }
+  .placeholder-text { color: var(--text-muted); font-style: italic; font-family: var(--font-mono); font-size: .82rem; }
 
+  .code-actions {
+    position: absolute; top: 12px; right: 12px; display: flex; gap: 6px;
+  }
+  .btn-icon {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text-muted); padding: 5px 12px; border-radius: 7px;
+    font-size: .73rem; cursor: pointer; transition: all .15s;
+  }
+  .btn-icon:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Metrics ── */
   .metrics {
-    display: flex; gap: 16px; padding: 14px 20px;
-    border-top: 1px solid #2d3748; background: #161b27;
+    display: flex; gap: 0; border-top: 1px solid var(--border);
+    background: var(--surface2);
   }
-  .metric { text-align: center; }
-  .metric .val { font-size: 1.3rem; font-weight: 700; color: #60a5fa; }
-  .metric .lbl { font-size: .7rem; color: #718096; margin-top: 2px; }
+  .metric {
+    flex: 1; padding: 12px 16px; text-align: center;
+    border-right: 1px solid var(--border);
+  }
+  .metric:last-child { border-right: none; }
+  .metric-val { font-size: 1.15rem; font-weight: 700; color: var(--accent); font-family: var(--font-mono); }
+  .metric-lbl { font-size: .68rem; color: var(--text-muted); margin-top: 2px; letter-spacing: .03em; }
 
+  /* ── Issues ── */
+  .issue-list { padding: 12px 18px; border-top: 1px solid var(--border); }
+  .issue-row {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 5px 0; font-size: .8rem;
+  }
+  .issue-row.error { color: #f87171; }
+  .issue-row.warn { color: #fbbf24; }
+
+  /* ── Spinner ── */
   .spinner {
-    display: inline-block; width: 16px; height: 16px; margin-right: 8px;
-    border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
-    border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle;
+    width: 16px; height: 16px; flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,.25); border-top-color: #fff;
+    border-radius: 50%; animation: spin .65s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .copy-btn {
-    background: transparent; border: 1px solid #2d3748; color: #a0aec0;
-    padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: .75rem;
-    transition: all .2s;
+  /* ── Validate text result ── */
+  .validate-result {
+    padding: 20px 22px; font-size: .88rem; line-height: 1.8;
+    color: var(--text); min-height: 120px;
   }
-  .copy-btn:hover { border-color: #3b82f6; color: #60a5fa; }
+  .v-ok { color: #4ade80; }
+  .v-err { color: #f87171; }
 
-  .issues { padding: 14px 20px; border-top: 1px solid #2d3748; }
-  .issue-item { font-size: .82rem; color: #fca5a5; margin-bottom: 4px; }
-  .issue-item::before { content: "⚠ "; }
-  .note-item { font-size: .82rem; color: #fcd34d; margin-bottom: 4px; }
-  .note-item::before { content: "💡 "; }
-
-  .status-bar {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    background: #161b27; border-top: 1px solid #2d3748;
-    padding: 6px 24px; display: flex; gap: 24px; align-items: center;
+  /* ── Explain ── */
+  .explain-text {
+    padding: 20px 22px; font-size: .88rem; line-height: 1.85;
+    color: var(--text-dim); white-space: pre-wrap; min-height: 200px;
   }
-  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block; margin-right: 6px; }
-  .status-dot.off { background: #ef4444; }
-  .status-text { font-size: .78rem; color: #718096; }
-  .status-model { font-size: .78rem; color: #4a5568; }
 
-  @media (max-width: 768px) {
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
+
+  @media (max-width: 900px) {
     .grid { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
   }
 </style>
 </head>
 <body>
 
+<!-- ── Header ── -->
 <header>
-  <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-    <rect width="36" height="36" rx="8" fill="#1e40af"/>
-    <text x="7" y="26" font-size="20" fill="white">⚡</text>
-  </svg>
-  <div>
-    <h1>AI Code Generator <span>powered by IBM watsonx</span></h1>
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <div class="logo-text">AI 코드 생성기</div>
+      <div class="logo-sub">IBM watsonx · Granite 코드 모델</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-pill">
+      <div class="dot" id="status-dot"></div>
+      <span id="status-text">서버 확인 중...</span>
+    </div>
   </div>
 </header>
 
-<div class="container">
-  <div class="tabs">
-    <div class="tab active" onclick="switchTab('function')">Function</div>
-    <div class="tab" onclick="switchTab('class')">Class</div>
-    <div class="tab" onclick="switchTab('tests')">Tests</div>
-    <div class="tab" onclick="switchTab('validate')">Validate</div>
-    <div class="tab" onclick="switchTab('explain')">Explain</div>
-  </div>
+<div class="layout">
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-label">기능</div>
+    <div class="nav-item active" onclick="switchTab('function')" id="nav-function">
+      <span class="nav-icon">𝑓</span> 함수 생성 <span class="nav-badge">Hot</span>
+    </div>
+    <div class="nav-item" onclick="switchTab('class')" id="nav-class">
+      <span class="nav-icon">◻</span> 클래스 생성
+    </div>
+    <div class="nav-item" onclick="switchTab('tests')" id="nav-tests">
+      <span class="nav-icon">✓</span> 테스트 생성
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-label">분석</div>
+    <div class="nav-item" onclick="switchTab('validate')" id="nav-validate">
+      <span class="nav-icon">🔍</span> 코드 검증
+    </div>
+    <div class="nav-item" onclick="switchTab('explain')" id="nav-explain">
+      <span class="nav-icon">💬</span> 코드 설명
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="shortcut-section">
+      <div class="sidebar-label">단축키</div>
+      <div class="shortcut-item"><span>함수 생성</span><kbd>Ctrl+Shift+K</kbd></div>
+      <div class="shortcut-item"><span>복사</span><kbd>Ctrl+C</kbd></div>
+    </div>
+  </aside>
 
-  <!-- FUNCTION -->
-  <div class="panel active" id="panel-function">
-    <div class="grid">
-      <div class="card">
-        <h2>Input</h2>
-        <label>Function Name</label>
-        <input id="fn-name" placeholder="e.g. calculate_discount" />
-        <label>Description</label>
-        <textarea id="fn-desc" placeholder="e.g. Calculate discount percentage based on original price and customer tier (bronze/silver/gold)"></textarea>
-        <label>Context (optional)</label>
-        <textarea id="fn-ctx" placeholder="Paste surrounding code for better results..." style="min-height:60px"></textarea>
-        <button class="generate" onclick="generateFunction()">⚡ Generate Function</button>
+  <!-- ── Main ── -->
+  <main class="main">
+
+    <!-- 함수 생성 -->
+    <div class="panel active" id="panel-function">
+      <div class="panel-header">
+        <div class="panel-title">함수 생성</div>
+        <div class="panel-desc">함수 이름과 목적을 입력하면 타입 힌트, docstring이 포함된 Python 코드를 생성합니다.</div>
       </div>
-      <div class="output-card">
-        <div class="output-header">
-          <span>Generated Code</span>
-          <div class="badges" id="fn-badges"></div>
-          <button class="copy-btn" onclick="copyCode('fn-code')">Copy</button>
+      <div class="grid">
+        <div class="card">
+          <div class="card-title">입력</div>
+          <div class="field">
+            <label>함수 이름</label>
+            <input id="fn-name" placeholder="예: calculate_discount" />
+            <div class="examples">
+              <span class="chip" onclick="fillFn('calculate_discount','고객 등급(bronze/silver/gold)과 원가를 입력받아 할인율 적용 후 최종 가격 반환')">할인율 계산</span>
+              <span class="chip" onclick="fillFn('parse_csv_to_dict','CSV 파일 경로를 받아 딕셔너리 리스트로 변환, 헤더는 키로 사용')">CSV 파싱</span>
+              <span class="chip" onclick="fillFn('send_slack_notification','웹훅 URL과 메시지를 받아 Slack 알림 전송, 실패 시 재시도 3회')">Slack 알림</span>
+              <span class="chip" onclick="fillFn('validate_email','이메일 주소 문자열을 받아 유효한 형식인지 정규식으로 검증 후 불리언 반환')">이메일 검증</span>
+              <span class="chip" onclick="fillFn('paginate_query','SQLAlchemy 쿼리 객체와 페이지 번호, 페이지 크기를 받아 페이징 처리된 결과 반환')">페이지네이션</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>기능 설명</label>
+            <textarea id="fn-desc" placeholder="예: 원가와 고객 등급을 입력받아 등급별 할인율을 적용한 최종 가격을 반환합니다."></textarea>
+          </div>
+          <div class="field">
+            <label>주변 코드 컨텍스트 <span style="color:var(--text-muted);font-weight:400">(선택)</span></label>
+            <textarea id="fn-ctx" placeholder="관련 클래스, 상수, import 등을 붙여넣으면 더 정확한 코드가 생성됩니다." style="min-height:60px"></textarea>
+          </div>
+          <button class="btn-generate" onclick="generateFunction()">
+            <span>⚡</span><span>함수 생성</span>
+          </button>
         </div>
-        <pre id="fn-code"><span class="placeholder">// Generated code will appear here...</span></pre>
-        <div id="fn-issues"></div>
-        <div class="metrics" id="fn-metrics" style="display:none">
-          <div class="metric"><div class="val" id="fn-latency">-</div><div class="lbl">Latency (ms)</div></div>
-          <div class="metric"><div class="val" id="fn-tokens">-</div><div class="lbl">Tokens</div></div>
-          <div class="metric"><div class="val" id="fn-quality">-</div><div class="lbl">Quality %</div></div>
-          <div class="metric"><div class="val" id="fn-confidence">-</div><div class="lbl">Confidence %</div></div>
+        <div class="output-card">
+          <div class="output-header">
+            <span class="output-title">생성된 코드</span>
+            <div class="badges" id="fn-badges"></div>
+            <button class="btn-icon" onclick="copyCode('fn-code')">복사</button>
+          </div>
+          <div class="code-wrap">
+            <pre id="fn-code"><span class="placeholder-text"># 생성된 함수 코드가 여기에 표시됩니다...</span></pre>
+          </div>
+          <div id="fn-issues"></div>
+          <div class="metrics" id="fn-metrics" style="display:none">
+            <div class="metric"><div class="metric-val" id="fn-latency">-</div><div class="metric-lbl">응답 시간 (ms)</div></div>
+            <div class="metric"><div class="metric-val" id="fn-tokens">-</div><div class="metric-lbl">토큰 수</div></div>
+            <div class="metric"><div class="metric-val" id="fn-quality">-</div><div class="metric-lbl">품질 점수</div></div>
+            <div class="metric"><div class="metric-val" id="fn-confidence">-</div><div class="metric-lbl">신뢰도</div></div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- CLASS -->
-  <div class="panel" id="panel-class">
-    <div class="grid">
-      <div class="card">
-        <h2>Input</h2>
-        <label>Class Name</label>
-        <input id="cls-name" placeholder="e.g. UserRepository" />
-        <label>Description</label>
-        <textarea id="cls-desc" placeholder="e.g. Manages user CRUD operations against a PostgreSQL database"></textarea>
-        <label>Methods (comma-separated, optional)</label>
-        <input id="cls-methods" placeholder="e.g. get_by_id, create, update, delete" />
-        <button class="generate" onclick="generateClass()">⚡ Generate Class</button>
+    <!-- 클래스 생성 -->
+    <div class="panel" id="panel-class">
+      <div class="panel-header">
+        <div class="panel-title">클래스 생성</div>
+        <div class="panel-desc">클래스 이름, 역할, 포함할 메서드를 입력하면 완성된 클래스를 생성합니다.</div>
       </div>
-      <div class="output-card">
-        <div class="output-header">
-          <span>Generated Code</span>
-          <div class="badges" id="cls-badges"></div>
-          <button class="copy-btn" onclick="copyCode('cls-code')">Copy</button>
+      <div class="grid">
+        <div class="card">
+          <div class="card-title">입력</div>
+          <div class="field">
+            <label>클래스 이름</label>
+            <input id="cls-name" placeholder="예: UserRepository" />
+            <div class="examples">
+              <span class="chip" onclick="fillCls('UserRepository','PostgreSQL DB에서 사용자 CRUD 작업을 관리하는 레포지토리','get_by_id,create,update,delete,list_all')">사용자 레포지토리</span>
+              <span class="chip" onclick="fillCls('CacheManager','Redis 기반 캐시 관리자, TTL 설정 및 만료 처리 포함','get,set,delete,flush,exists')">캐시 매니저</span>
+              <span class="chip" onclick="fillCls('FileUploader','S3에 파일 업로드, 다운로드, 삭제 기능을 제공하는 클래스','upload,download,delete,get_url')">S3 파일 업로더</span>
+              <span class="chip" onclick="fillCls('JWTAuthenticator','JWT 토큰 생성 및 검증을 담당하는 인증 클래스','create_token,verify_token,refresh_token')">JWT 인증</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>클래스 역할 설명</label>
+            <textarea id="cls-desc" placeholder="예: PostgreSQL 데이터베이스에서 사용자 CRUD 작업을 처리하는 레포지토리 클래스입니다."></textarea>
+          </div>
+          <div class="field">
+            <label>포함할 메서드 <span style="color:var(--text-muted);font-weight:400">(쉼표 구분, 선택)</span></label>
+            <input id="cls-methods" placeholder="예: get_by_id, create, update, delete" />
+          </div>
+          <button class="btn-generate" onclick="generateClass()">
+            <span>⚡</span><span>클래스 생성</span>
+          </button>
         </div>
-        <pre id="cls-code"><span class="placeholder">// Generated code will appear here...</span></pre>
-        <div id="cls-issues"></div>
-        <div class="metrics" id="cls-metrics" style="display:none">
-          <div class="metric"><div class="val" id="cls-latency">-</div><div class="lbl">Latency (ms)</div></div>
-          <div class="metric"><div class="val" id="cls-tokens">-</div><div class="lbl">Tokens</div></div>
-          <div class="metric"><div class="val" id="cls-quality">-</div><div class="lbl">Quality %</div></div>
-          <div class="metric"><div class="val" id="cls-confidence">-</div><div class="lbl">Confidence %</div></div>
+        <div class="output-card">
+          <div class="output-header">
+            <span class="output-title">생성된 코드</span>
+            <div class="badges" id="cls-badges"></div>
+            <button class="btn-icon" onclick="copyCode('cls-code')">복사</button>
+          </div>
+          <div class="code-wrap">
+            <pre id="cls-code"><span class="placeholder-text"># 생성된 클래스 코드가 여기에 표시됩니다...</span></pre>
+          </div>
+          <div id="cls-issues"></div>
+          <div class="metrics" id="cls-metrics" style="display:none">
+            <div class="metric"><div class="metric-val" id="cls-latency">-</div><div class="metric-lbl">응답 시간 (ms)</div></div>
+            <div class="metric"><div class="metric-val" id="cls-tokens">-</div><div class="metric-lbl">토큰 수</div></div>
+            <div class="metric"><div class="metric-val" id="cls-quality">-</div><div class="metric-lbl">품질 점수</div></div>
+            <div class="metric"><div class="metric-val" id="cls-confidence">-</div><div class="metric-lbl">신뢰도</div></div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- TESTS -->
-  <div class="panel" id="panel-tests">
-    <div class="grid">
-      <div class="card">
-        <h2>Input</h2>
-        <label>Source Code</label>
-        <textarea id="test-src" style="min-height:200px" placeholder="Paste your Python function or class here..."></textarea>
-        <button class="generate" onclick="generateTests()">⚡ Generate Tests</button>
+    <!-- 테스트 생성 -->
+    <div class="panel" id="panel-tests">
+      <div class="panel-header">
+        <div class="panel-title">테스트 생성</div>
+        <div class="panel-desc">소스 코드를 붙여넣으면 정상/경계/오류 케이스를 포함한 pytest 테스트를 자동 생성합니다.</div>
       </div>
-      <div class="output-card">
-        <div class="output-header">
-          <span>Generated Tests</span>
-          <div class="badges" id="test-badges"></div>
-          <button class="copy-btn" onclick="copyCode('test-code')">Copy</button>
+      <div class="grid">
+        <div class="card">
+          <div class="card-title">소스 코드 입력</div>
+          <div class="field">
+            <div class="examples" style="margin-bottom:10px">
+              <span class="chip" onclick="fillTest(`def calculate_discount(price: float, tier: str) -> float:\n    \"\"\"등급별 할인가 반환.\"\"\"\n    rates = {'bronze': 0.05, 'silver': 0.10, 'gold': 0.20}\n    return price * (1 - rates.get(tier, 0))`)">할인율 함수</span>
+              <span class="chip" onclick="fillTest(`def validate_email(email: str) -> bool:\n    \"\"\"이메일 형식 검증.\"\"\"\n    import re\n    pattern = r'^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$'\n    return bool(re.match(pattern, email))`)">이메일 검증</span>
+              <span class="chip" onclick="fillTest(`def fibonacci(n: int) -> int:\n    \"\"\"n번째 피보나치 수 반환.\"\"\"\n    if n < 0:\n        raise ValueError('n은 0 이상이어야 합니다')\n    if n <= 1:\n        return n\n    return fibonacci(n-1) + fibonacci(n-2)`)">피보나치</span>
+            </div>
+            <textarea id="test-src" style="min-height:220px;font-family:var(--font-mono);font-size:.82rem" placeholder="테스트할 Python 함수 또는 클래스를 붙여넣으세요..."></textarea>
+          </div>
+          <button class="btn-generate" onclick="generateTests()">
+            <span>⚡</span><span>테스트 생성</span>
+          </button>
         </div>
-        <pre id="test-code"><span class="placeholder">// pytest code will appear here...</span></pre>
-        <div id="test-issues"></div>
-        <div class="metrics" id="test-metrics" style="display:none">
-          <div class="metric"><div class="val" id="test-latency">-</div><div class="lbl">Latency (ms)</div></div>
-          <div class="metric"><div class="val" id="test-tokens">-</div><div class="lbl">Tokens</div></div>
-          <div class="metric"><div class="val" id="test-quality">-</div><div class="lbl">Quality %</div></div>
-          <div class="metric"><div class="val" id="test-confidence">-</div><div class="lbl">Confidence %</div></div>
+        <div class="output-card">
+          <div class="output-header">
+            <span class="output-title">생성된 테스트</span>
+            <div class="badges" id="test-badges"></div>
+            <button class="btn-icon" onclick="copyCode('test-code')">복사</button>
+          </div>
+          <div class="code-wrap">
+            <pre id="test-code"><span class="placeholder-text"># pytest 테스트 코드가 여기에 표시됩니다...</span></pre>
+          </div>
+          <div id="test-issues"></div>
+          <div class="metrics" id="test-metrics" style="display:none">
+            <div class="metric"><div class="metric-val" id="test-latency">-</div><div class="metric-lbl">응답 시간 (ms)</div></div>
+            <div class="metric"><div class="metric-val" id="test-tokens">-</div><div class="metric-lbl">토큰 수</div></div>
+            <div class="metric"><div class="metric-val" id="test-quality">-</div><div class="metric-lbl">품질 점수</div></div>
+            <div class="metric"><div class="metric-val" id="test-confidence">-</div><div class="metric-lbl">신뢰도</div></div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- VALIDATE -->
-  <div class="panel" id="panel-validate">
-    <div class="grid">
-      <div class="card">
-        <h2>Input</h2>
-        <label>Python Code</label>
-        <textarea id="val-code" style="min-height:240px" placeholder="Paste Python code to validate..."></textarea>
-        <button class="generate" onclick="validateCode()">🔍 Validate Code</button>
+    <!-- 코드 검증 -->
+    <div class="panel" id="panel-validate">
+      <div class="panel-header">
+        <div class="panel-title">코드 검증</div>
+        <div class="panel-desc">문법 오류, 보안 취약점, 코드 품질을 자동으로 분석합니다.</div>
       </div>
-      <div class="output-card">
-        <div class="output-header">
-          <span>Validation Result</span>
-          <div class="badges" id="val-badges"></div>
+      <div class="grid">
+        <div class="card">
+          <div class="card-title">검증할 코드</div>
+          <div class="field">
+            <div class="examples" style="margin-bottom:10px">
+              <span class="chip" onclick="fillValidate(`def safe_function(name: str) -> str:\n    \"\"\"안전한 인사 함수.\"\"\"\n    return f'안녕하세요, {name}님!'`)">✅ 정상 코드</span>
+              <span class="chip" onclick="fillValidate(`def dangerous(user_input):\n    return eval(user_input)`)">⚠ 보안 취약점</span>
+              <span class="chip" onclick="fillValidate(`def broken(\n    return 42`)">✗ 문법 오류</span>
+              <span class="chip" onclick="fillValidate(`import os\ndef run_command(cmd):\n    os.system(cmd)\n    result = eval(cmd)\n    return result`)">⚠ 복합 문제</span>
+            </div>
+            <textarea id="val-code" style="min-height:220px;font-family:var(--font-mono);font-size:.82rem" placeholder="검증할 Python 코드를 입력하세요..."></textarea>
+          </div>
+          <button class="btn-generate" onclick="validateCode()">
+            <span>🔍</span><span>코드 검증</span>
+          </button>
         </div>
-        <pre id="val-result"><span class="placeholder">// Validation results will appear here...</span></pre>
-        <div id="val-issues"></div>
-        <div class="metrics" id="val-metrics" style="display:none">
-          <div class="metric"><div class="val" id="val-quality">-</div><div class="lbl">Quality %</div></div>
-          <div class="metric"><div class="val" id="val-confidence">-</div><div class="lbl">Confidence %</div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EXPLAIN -->
-  <div class="panel" id="panel-explain">
-    <div class="grid">
-      <div class="card">
-        <h2>Input</h2>
-        <label>Code to Explain</label>
-        <textarea id="exp-src" style="min-height:240px" placeholder="Paste Python code to explain..."></textarea>
-        <button class="generate" onclick="explainCode()">💬 Explain Code</button>
-      </div>
-      <div class="output-card">
-        <div class="output-header"><span>Explanation</span></div>
-        <pre id="exp-result" style="white-space:pre-wrap"><span class="placeholder">// Explanation will appear here...</span></pre>
-        <div class="metrics" id="exp-metrics" style="display:none">
-          <div class="metric"><div class="val" id="exp-latency">-</div><div class="lbl">Latency (ms)</div></div>
+        <div class="output-card">
+          <div class="output-header">
+            <span class="output-title">검증 결과</span>
+            <div class="badges" id="val-badges"></div>
+          </div>
+          <div class="validate-result" id="val-result">
+            <span class="placeholder-text">검증 결과가 여기에 표시됩니다...</span>
+          </div>
+          <div id="val-issues"></div>
+          <div class="metrics" id="val-metrics" style="display:none">
+            <div class="metric"><div class="metric-val" id="val-quality">-</div><div class="metric-lbl">품질 점수</div></div>
+            <div class="metric"><div class="metric-val" id="val-confidence">-</div><div class="metric-lbl">신뢰도</div></div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-<div class="status-bar">
-  <div>
-    <span class="status-dot" id="status-dot"></span>
-    <span class="status-text" id="status-text">Checking server...</span>
-  </div>
-  <span class="status-model" id="status-model"></span>
+    <!-- 코드 설명 -->
+    <div class="panel" id="panel-explain">
+      <div class="panel-header">
+        <div class="panel-title">코드 설명</div>
+        <div class="panel-desc">복잡한 코드를 AI가 이해하기 쉽게 설명해 드립니다.</div>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <div class="card-title">설명할 코드</div>
+          <div class="field">
+            <div class="examples" style="margin-bottom:10px">
+              <span class="chip" onclick="fillExplain(`from functools import reduce\n\ndef flatten_and_sum(nested: list) -> int:\n    flat = reduce(lambda a, b: a + (b if isinstance(b, list) else [b]), nested, [])\n    return sum(flat)`)">중첩 리스트 합산</span>
+              <span class="chip" onclick="fillExplain(`def memoize(fn):\n    cache = {}\n    def wrapper(*args):\n        if args not in cache:\n            cache[args] = fn(*args)\n        return cache[args]\n    return wrapper`)">메모이제이션</span>
+              <span class="chip" onclick="fillExplain(`class Singleton:\n    _instance = None\n    def __new__(cls, *args, **kwargs):\n        if not cls._instance:\n            cls._instance = super().__new__(cls)\n        return cls._instance`)">싱글톤 패턴</span>
+            </div>
+            <textarea id="exp-src" style="min-height:220px;font-family:var(--font-mono);font-size:.82rem" placeholder="설명이 필요한 Python 코드를 붙여넣으세요..."></textarea>
+          </div>
+          <button class="btn-generate" onclick="explainCode()">
+            <span>💬</span><span>코드 설명</span>
+          </button>
+        </div>
+        <div class="output-card">
+          <div class="output-header"><span class="output-title">AI 설명</span></div>
+          <div class="explain-text" id="exp-result">
+            <span class="placeholder-text">AI 설명이 여기에 표시됩니다...</span>
+          </div>
+          <div class="metrics" id="exp-metrics" style="display:none">
+            <div class="metric"><div class="metric-val" id="exp-latency">-</div><div class="metric-lbl">응답 시간 (ms)</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
 </div>
 
 <script>
 const API = 'http://localhost:8000';
 
-// ── Tab switching ─────────────────────────────────────────────────────────────
+// ── 탭 전환 ───────────────────────────────────────────────────────────────────
+const TABS = ['function','class','tests','validate','explain'];
 function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t, i) => {
-    const tabs = ['function','class','tests','validate','explain'];
-    t.classList.toggle('active', tabs[i] === name);
+  TABS.forEach(t => {
+    document.getElementById('nav-' + t)?.classList.toggle('active', t === name);
+    document.getElementById('panel-' + t)?.classList.toggle('active', t === name);
   });
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('panel-' + name).classList.add('active');
 }
 
-// ── Health check ──────────────────────────────────────────────────────────────
+// ── 예시 자동 채우기 ──────────────────────────────────────────────────────────
+function fillFn(name, desc) {
+  document.getElementById('fn-name').value = name;
+  document.getElementById('fn-desc').value = desc;
+}
+function fillCls(name, desc, methods) {
+  document.getElementById('cls-name').value = name;
+  document.getElementById('cls-desc').value = desc;
+  document.getElementById('cls-methods').value = methods;
+}
+function fillTest(code) { document.getElementById('test-src').value = code; }
+function fillValidate(code) { document.getElementById('val-code').value = code; }
+function fillExplain(code) { document.getElementById('exp-src').value = code; }
+
+// ── 서버 상태 확인 ────────────────────────────────────────────────────────────
 async function checkHealth() {
+  const dot = document.getElementById('status-dot');
+  const txt = document.getElementById('status-text');
   try {
-    const r = await fetch(`${API}/health`);
-    const dot = document.getElementById('status-dot');
-    const txt = document.getElementById('status-text');
-    const mdl = document.getElementById('status-model');
+    const r = await fetch(`${API}/health`, { signal: AbortSignal.timeout(3000) });
     if (r.ok) {
       const d = await r.json();
-      dot.classList.remove('off');
-      txt.textContent = 'Server running';
-      mdl.textContent = `Model: ${d.model}`;
-    } else { throw new Error(); }
+      dot.className = 'dot online';
+      txt.textContent = '서버 연결됨 · ' + (d.model?.split('/').pop() || '');
+    } else throw new Error();
   } catch {
-    document.getElementById('status-dot').classList.add('off');
-    document.getElementById('status-text').textContent = 'Server offline — run: python main.py';
+    dot.className = 'dot offline';
+    txt.textContent = '서버 오프라인 — python main.py 실행 필요';
   }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function setLoading(btnEl, loading) {
-  if (loading) {
-    btnEl.disabled = true;
-    btnEl.innerHTML = '<span class="spinner"></span>Generating...';
+// ── 로딩 처리 ─────────────────────────────────────────────────────────────────
+function setLoading(btn, on) {
+  if (on) {
+    btn._label = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div><span>생성 중...</span>';
   } else {
-    btnEl.disabled = false;
-    btnEl.innerHTML = btnEl.dataset.label;
+    btn.disabled = false;
+    btn.innerHTML = btn._label;
   }
 }
 
+// ── 결과 렌더링 ───────────────────────────────────────────────────────────────
 function renderResult(prefix, data) {
   document.getElementById(`${prefix}-code`).textContent = data.code;
   document.getElementById(`${prefix}-metrics`).style.display = 'flex';
-  document.getElementById(`${prefix}-latency`).textContent = Math.round(data.latency_ms);
-  document.getElementById(`${prefix}-tokens`).textContent = data.tokens_used;
-  document.getElementById(`${prefix}-quality`).textContent = data.validation.quality_score;
-  document.getElementById(`${prefix}-confidence`).textContent = data.confidence_score;
+  document.getElementById(`${prefix}-latency`).textContent = Math.round(data.latency_ms).toLocaleString();
+  document.getElementById(`${prefix}-tokens`).textContent = data.tokens_used.toLocaleString();
+  document.getElementById(`${prefix}-quality`).textContent = data.validation.quality_score + '%';
+  document.getElementById(`${prefix}-confidence`).textContent = data.confidence_score + '%';
 
   const v = data.validation;
-  const badgesEl = document.getElementById(`${prefix}-badges`);
-  badgesEl.innerHTML = '';
-  badgesEl.innerHTML += `<span class="badge ${v.syntax_ok ? 'green' : 'red'}">${v.syntax_ok ? '✓ Syntax OK' : '✗ Syntax Error'}</span>`;
-  if (v.security_issues.length === 0) badgesEl.innerHTML += `<span class="badge green">✓ Secure</span>`;
-  else badgesEl.innerHTML += `<span class="badge red">⚠ ${v.security_issues.length} Security Issue(s)</span>`;
-  badgesEl.innerHTML += `<span class="badge blue">Score ${data.confidence_score}%</span>`;
+  const el = document.getElementById(`${prefix}-badges`);
+  el.innerHTML = '';
+  el.innerHTML += badge(v.syntax_ok ? 'green' : 'red', v.syntax_ok ? '✓ 문법 정상' : '✗ 문법 오류');
+  el.innerHTML += badge(v.security_issues.length ? 'red' : 'green', v.security_issues.length ? `⚠ 보안 ${v.security_issues.length}건` : '✓ 보안 이상없음');
+  el.innerHTML += badge('blue', `신뢰도 ${data.confidence_score}%`);
 
-  const issuesEl = document.getElementById(`${prefix}-issues`);
-  issuesEl.innerHTML = '';
-  if (v.security_issues.length || v.quality_notes.length) {
-    issuesEl.className = 'issues';
-    v.security_issues.forEach(i => { issuesEl.innerHTML += `<div class="issue-item">${i}</div>`; });
-    v.quality_notes.forEach(n => { issuesEl.innerHTML += `<div class="note-item">${n}</div>`; });
-  }
+  renderIssues(`${prefix}-issues`, v.security_issues, v.quality_notes);
+}
+
+function badge(cls, text) {
+  return `<span class="badge ${cls}">${text}</span>`;
+}
+
+function renderIssues(id, security, notes) {
+  const el = document.getElementById(id);
+  el.innerHTML = '';
+  if (!security.length && !notes.length) return;
+  el.className = 'issue-list';
+  security.forEach(i => el.innerHTML += `<div class="issue-row error"><span>⚠</span><span>${i}</span></div>`);
+  notes.forEach(n => el.innerHTML += `<div class="issue-row warn"><span>💡</span><span>${n}</span></div>`);
 }
 
 function copyCode(id) {
   const text = document.getElementById(id).textContent;
   navigator.clipboard.writeText(text).then(() => {
-    const btn = event.target; btn.textContent = 'Copied!';
-    setTimeout(() => btn.textContent = 'Copy', 1500);
+    const btns = document.querySelectorAll('.btn-icon');
+    btns.forEach(b => { if (b.onclick?.toString().includes(id)) { b.textContent = '✓ 복사됨'; setTimeout(() => b.textContent = '복사', 1500); } });
   });
 }
 
-// ── API calls ─────────────────────────────────────────────────────────────────
-async function generateFunction() {
-  const btn = document.querySelector('#panel-function .generate');
-  btn.dataset.label = btn.innerHTML;
+// ── API 호출 ──────────────────────────────────────────────────────────────────
+async function call(url, body) {
+  const r = await fetch(API + url, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.detail || `HTTP ${r.status}`);
+  }
+  return r.json();
+}
+
+async function withBtn(selector, fn) {
+  const btn = document.querySelector(selector);
   setLoading(btn, true);
-  try {
-    const r = await fetch(`${API}/generate/function`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        function_name: document.getElementById('fn-name').value,
-        description: document.getElementById('fn-desc').value,
-        context: document.getElementById('fn-ctx').value,
-      })
-    });
-    if (!r.ok) throw new Error((await r.json()).detail);
-    renderResult('fn', await r.json());
-  } catch(e) { alert('Error: ' + e.message); }
+  try { await fn(); }
+  catch (e) { alert('오류: ' + e.message); }
   finally { setLoading(btn, false); }
+}
+
+async function generateFunction() {
+  await withBtn('#panel-function .btn-generate', async () => {
+    const data = await call('/generate/function', {
+      function_name: document.getElementById('fn-name').value,
+      description: document.getElementById('fn-desc').value,
+      context: document.getElementById('fn-ctx').value,
+    });
+    renderResult('fn', data);
+  });
 }
 
 async function generateClass() {
-  const btn = document.querySelector('#panel-class .generate');
-  btn.dataset.label = btn.innerHTML;
-  setLoading(btn, true);
-  try {
-    const methods = document.getElementById('cls-methods').value.split(',').map(m => m.trim()).filter(Boolean);
-    const r = await fetch(`${API}/generate/class`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        class_name: document.getElementById('cls-name').value,
-        description: document.getElementById('cls-desc').value,
-        methods,
-      })
+  await withBtn('#panel-class .btn-generate', async () => {
+    const methods = document.getElementById('cls-methods').value
+      .split(',').map(m => m.trim()).filter(Boolean);
+    const data = await call('/generate/class', {
+      class_name: document.getElementById('cls-name').value,
+      description: document.getElementById('cls-desc').value,
+      methods,
     });
-    if (!r.ok) throw new Error((await r.json()).detail);
-    renderResult('cls', await r.json());
-  } catch(e) { alert('Error: ' + e.message); }
-  finally { setLoading(btn, false); }
+    renderResult('cls', data);
+  });
 }
 
 async function generateTests() {
-  const btn = document.querySelector('#panel-tests .generate');
-  btn.dataset.label = btn.innerHTML;
-  setLoading(btn, true);
-  try {
-    const r = await fetch(`${API}/generate/tests`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ source_code: document.getElementById('test-src').value })
+  await withBtn('#panel-tests .btn-generate', async () => {
+    const data = await call('/generate/tests', {
+      source_code: document.getElementById('test-src').value,
     });
-    if (!r.ok) throw new Error((await r.json()).detail);
-    renderResult('test', await r.json());
-  } catch(e) { alert('Error: ' + e.message); }
-  finally { setLoading(btn, false); }
+    renderResult('test', data);
+  });
 }
 
 async function validateCode() {
-  const btn = document.querySelector('#panel-validate .generate');
-  btn.dataset.label = btn.innerHTML;
-  setLoading(btn, true);
-  try {
-    const r = await fetch(`${API}/validate`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ code: document.getElementById('val-code').value })
-    });
-    if (!r.ok) throw new Error((await r.json()).detail);
-    const d = await r.json();
+  await withBtn('#panel-validate .btn-generate', async () => {
+    const d = await call('/validate', { code: document.getElementById('val-code').value });
 
-    document.getElementById('val-result').textContent =
-      d.syntax_ok ? '✓ Syntax valid' : `✗ ${d.error}`;
+    const resultEl = document.getElementById('val-result');
+    if (d.syntax_ok) {
+      resultEl.innerHTML = `<span class="v-ok">✓ 문법 검증 통과</span>`;
+    } else {
+      resultEl.innerHTML = `<span class="v-err">✗ 문법 오류\n${d.error || ''}</span>`;
+    }
 
     document.getElementById('val-metrics').style.display = 'flex';
-    document.getElementById('val-quality').textContent = d.quality_score;
-    document.getElementById('val-confidence').textContent = d.confidence_score;
+    document.getElementById('val-quality').textContent = d.quality_score + '%';
+    document.getElementById('val-confidence').textContent = d.confidence_score + '%';
 
     const badgesEl = document.getElementById('val-badges');
-    badgesEl.innerHTML = `<span class="badge ${d.syntax_ok ? 'green' : 'red'}">${d.syntax_ok ? '✓ Syntax OK' : '✗ Syntax Error'}</span>`;
-    if (!d.security_issues.length) badgesEl.innerHTML += `<span class="badge green">✓ Secure</span>`;
-    else badgesEl.innerHTML += `<span class="badge red">⚠ ${d.security_issues.length} Issue(s)</span>`;
+    badgesEl.innerHTML = '';
+    badgesEl.innerHTML += badge(d.syntax_ok ? 'green' : 'red', d.syntax_ok ? '✓ 문법 정상' : '✗ 문법 오류');
+    badgesEl.innerHTML += badge(d.security_issues.length ? 'red' : 'green',
+      d.security_issues.length ? `⚠ 보안 ${d.security_issues.length}건` : '✓ 보안 이상없음');
+    badgesEl.innerHTML += badge('purple', `품질 ${d.quality_score}%`);
 
-    const issuesEl = document.getElementById('val-issues');
-    issuesEl.innerHTML = '';
-    if (d.security_issues.length || d.quality_notes.length) {
-      issuesEl.className = 'issues';
-      d.security_issues.forEach(i => { issuesEl.innerHTML += `<div class="issue-item">${i}</div>`; });
-      d.quality_notes.forEach(n => { issuesEl.innerHTML += `<div class="note-item">${n}</div>`; });
-    }
-  } catch(e) { alert('Error: ' + e.message); }
-  finally { setLoading(btn, false); }
+    renderIssues('val-issues', d.security_issues, d.quality_notes);
+  });
 }
 
 async function explainCode() {
-  const btn = document.querySelector('#panel-explain .generate');
-  btn.dataset.label = btn.innerHTML;
-  setLoading(btn, true);
-  try {
-    const r = await fetch(`${API}/explain`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ source_code: document.getElementById('exp-src').value })
-    });
-    if (!r.ok) throw new Error((await r.json()).detail);
-    const d = await r.json();
+  await withBtn('#panel-explain .btn-generate', async () => {
+    const d = await call('/explain', { source_code: document.getElementById('exp-src').value });
     document.getElementById('exp-result').textContent = d.explanation;
     document.getElementById('exp-metrics').style.display = 'flex';
-    document.getElementById('exp-latency').textContent = Math.round(d.latency_ms);
-  } catch(e) { alert('Error: ' + e.message); }
-  finally { setLoading(btn, false); }
+    document.getElementById('exp-latency').textContent = Math.round(d.latency_ms).toLocaleString();
+  });
 }
 
 // Init
 checkHealth();
 setInterval(checkHealth, 10000);
-
-// Save button labels
-document.querySelectorAll('.generate').forEach(b => b.dataset.label = b.innerHTML);
 </script>
 </body>
 </html>
