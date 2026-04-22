@@ -113,7 +113,7 @@ def _generate_and_respond(prompt: str, request_type: str) -> GenerateResponse:
 # ── Routes ────────────────────────────────────────────────────────────────────
 @app.get("/health")
 def health():
-    return {"status": "ok", "model": "ibm/granite-34b-code-instruct"}
+    return {"status": "ok", "model": "ibm/granite-8b-code-instruct"}
 
 
 @app.post("/generate/function", response_model=GenerateResponse)
