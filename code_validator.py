@@ -1,24 +1,58 @@
 import ast
 import re
 from dataclasses import dataclass, field
+from typing import Literal
 
-DANGEROUS_PATTERNS = [
-    (r"\beval\s*\(", "eval() usage"),
-    (r"\bexec\s*\(", "exec() usage"),
-    (r"__import__\s*\(", "__import__() usage"),
-    (r"subprocess\.call\s*\(.*shell\s*=\s*True", "shell=True in subprocess"),
-    (r"os\.system\s*\(", "os.system() usage"),
-    (r"pickle\.loads?\s*\(", "pickle deserialization"),
-    (r"open\s*\([^)]+,\s*['\"]w", "file write operation"),
+SeverityLevel = Literal["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+
+# (pattern, label, severity)
+DANGEROUS_PATTERNS: list[tuple[str, str, SeverityLevel]] = [
+    # CRITICAL — arbitrary code execution
+    (r"\beval\s*\(",                              "eval() usage",                    "CRITICAL"),
+    (r"\bexec\s*\(",                              "exec() usage",                    "CRITICAL"),
+    (r"__import__\s*\(",                          "__import__() usage",              "CRITICAL"),
+    (r"subprocess\.[a-z_]+\s*\(.*shell\s*=\s*True", "subprocess shell=True",        "CRITICAL"),
+    (r"os\.system\s*\(",                          "os.system() usage",               "CRITICAL"),
+    # HIGH — deserialization / injection
+    (r"pickle\.loads?\s*\(",                      "pickle deserialization",           "HIGH"),
+    (r"yaml\.load\s*\([^)]*\)",                   "yaml.load() without Loader",      "HIGH"),
+    (r"""(?:execute|executemany)\s*\(\s*[f"'].*%|\.format\(|f["']""",
+                                                  "potential SQL injection",          "HIGH"),
+    # MEDIUM — data exposure / weak crypto
+    (r"hashlib\.(md5|sha1)\s*\(",                 "weak hashing algorithm",          "MEDIUM"),
+    # LOW — permissive file operations
+    (r"open\s*\([^)]+,\s*['\"]w",                "file write operation",            "LOW"),
 ]
+
+SEVERITY_ORDER: dict[SeverityLevel, int] = {
+    "CRITICAL": 4,
+    "HIGH": 3,
+    "MEDIUM": 2,
+    "LOW": 1,
+}
+
+SEVERITY_PENALTY: dict[SeverityLevel, int] = {
+    "CRITICAL": 30,
+    "HIGH": 20,
+    "MEDIUM": 10,
+    "LOW": 5,
+}
+
+
+@dataclass
+class SecurityIssue:
+    label: str
+    severity: SeverityLevel
 
 
 @dataclass
 class ValidationResult:
     is_valid: bool
     syntax_ok: bool
-    security_issues: list[str] = field(default_factory=list)
-    quality_score: int = 0          # 0–100
+    security_issues: list[str] = field(default_factory=list)          # kept for API compat
+    security_details: list[SecurityIssue] = field(default_factory=list)
+    risk_level: SeverityLevel | None = None
+    quality_score: int = 0
     quality_notes: list[str] = field(default_factory=list)
     error: str | None = None
 
@@ -26,8 +60,14 @@ class ValidationResult:
     def confidence_score(self) -> int:
         if not self.syntax_ok:
             return 0
-        penalty = min(len(self.security_issues) * 20, 40)
-        return max(self.quality_score - penalty, 0)
+        penalty = sum(SEVERITY_PENALTY[i.severity] for i in self.security_details)
+        return max(self.quality_score - min(penalty, 60), 0)
+
+
+def _overall_risk(issues: list[SecurityIssue]) -> SeverityLevel | None:
+    if not issues:
+        return None
+    return max(issues, key=lambda i: SEVERITY_ORDER[i.severity]).severity
 
 
 def validate(code: str) -> ValidationResult:
@@ -43,17 +83,19 @@ def validate(code: str) -> ValidationResult:
         )
 
     # 2. Security scan
-    security_issues = [
-        label for pattern, label in DANGEROUS_PATTERNS
-        if re.search(pattern, code)
+    details: list[SecurityIssue] = [
+        SecurityIssue(label=label, severity=severity)
+        for pattern, label, severity in DANGEROUS_PATTERNS
+        if re.search(pattern, code, re.DOTALL)
     ]
+    security_issues = [d.label for d in details]
+    risk_level = _overall_risk(details)
 
     # 3. Quality checks
     quality_score = 100
     quality_notes: list[str] = []
 
     functions = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
-    classes = [n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]
 
     missing_docstrings = [
         f.name for f in functions
@@ -81,6 +123,8 @@ def validate(code: str) -> ValidationResult:
         is_valid=is_valid,
         syntax_ok=syntax_ok,
         security_issues=security_issues,
+        security_details=details,
+        risk_level=risk_level,
         quality_score=max(quality_score, 0),
         quality_notes=quality_notes,
     )

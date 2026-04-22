@@ -107,6 +107,11 @@ def _generate_and_respond(prompt: str, request_type: str, model_key: str) -> Gen
             "syntax_ok": validation.syntax_ok,
             "is_valid": validation.is_valid,
             "security_issues": validation.security_issues,
+            "security_details": [
+                {"label": d.label, "severity": d.severity}
+                for d in validation.security_details
+            ],
+            "risk_level": validation.risk_level,
             "quality_score": validation.quality_score,
             "quality_notes": validation.quality_notes,
         },
@@ -153,6 +158,11 @@ def validate_code(req: ValidateRequest):
         "syntax_ok": result.syntax_ok,
         "is_valid": result.is_valid,
         "security_issues": result.security_issues,
+        "security_details": [
+            {"label": d.label, "severity": d.severity}
+            for d in result.security_details
+        ],
+        "risk_level": result.risk_level,
         "quality_score": result.quality_score,
         "quality_notes": result.quality_notes,
         "confidence_score": result.confidence_score,

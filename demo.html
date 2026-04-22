@@ -187,6 +187,19 @@
   .badge.red { background: var(--red-bg); color: #f87171; border: 1px solid rgba(248,113,113,.2); }
   .badge.blue { background: rgba(59,130,246,.1); color: #60a5fa; border: 1px solid rgba(96,165,250,.2); }
   .badge.purple { background: rgba(99,102,241,.1); color: #a5b4fc; border: 1px solid rgba(165,180,252,.2); }
+  .badge.orange { background: rgba(234,88,12,.15); color: #fb923c; border: 1px solid rgba(251,146,60,.2); }
+  .badge.yellow { background: rgba(234,179,8,.12); color: #fbbf24; border: 1px solid rgba(251,191,36,.2); }
+  .badge.gray { background: rgba(100,116,139,.15); color: #94a3b8; border: 1px solid rgba(148,163,184,.2); }
+
+  /* ── Severity inline badge ── */
+  .sev {
+    display: inline-block; padding: 1px 7px; border-radius: 4px;
+    font-size: .65rem; font-weight: 700; letter-spacing: .04em; margin-right: 6px; flex-shrink: 0;
+  }
+  .sev.CRITICAL { background: rgba(239,68,68,.2); color: #f87171; }
+  .sev.HIGH     { background: rgba(234,88,12,.2); color: #fb923c; }
+  .sev.MEDIUM   { background: rgba(234,179,8,.2); color: #fbbf24; }
+  .sev.LOW      { background: rgba(100,116,139,.2); color: #94a3b8; }
 
   .code-wrap { flex: 1; position: relative; }
   pre {
@@ -802,23 +815,35 @@ function renderResult(prefix, data) {
   const el = document.getElementById(`${prefix}-badges`);
   el.innerHTML = '';
   el.innerHTML += badge(v.syntax_ok ? 'green' : 'red', v.syntax_ok ? '✓ 문법 정상' : '✗ 문법 오류');
-  el.innerHTML += badge(v.security_issues.length ? 'red' : 'green', v.security_issues.length ? `⚠ 보안 ${v.security_issues.length}건` : '✓ 보안 이상없음');
+  if (v.security_issues.length) {
+    const riskColors = { CRITICAL: 'red', HIGH: 'orange', MEDIUM: 'yellow', LOW: 'gray' };
+    const riskColor = riskColors[v.risk_level] || 'red';
+    el.innerHTML += badge(riskColor, `⚠ ${v.risk_level} · ${v.security_issues.length}건`);
+  } else {
+    el.innerHTML += badge('green', '✓ 보안 이상없음');
+  }
   el.innerHTML += badge('blue', `신뢰도 ${data.confidence_score}%`);
   if (data.model_id) el.innerHTML += badge('purple', data.model_id.split('/').pop());
 
-  renderIssues(`${prefix}-issues`, v.security_issues, v.quality_notes);
+  renderIssues(`${prefix}-issues`, v.security_issues, v.quality_notes, v.security_details);
 }
 
 function badge(cls, text) {
   return `<span class="badge ${cls}">${text}</span>`;
 }
 
-function renderIssues(id, security, notes) {
+function renderIssues(id, security, notes, details) {
   const el = document.getElementById(id);
   el.innerHTML = '';
   if (!security.length && !notes.length) return;
   el.className = 'issue-list';
-  security.forEach(i => el.innerHTML += `<div class="issue-row error"><span>⚠</span><span>${i}</span></div>`);
+  if (details && details.length) {
+    details.forEach(d =>
+      el.innerHTML += `<div class="issue-row error"><span>⚠</span><span class="sev ${d.severity}">${d.severity}</span><span>${d.label}</span></div>`
+    );
+  } else {
+    security.forEach(i => el.innerHTML += `<div class="issue-row error"><span>⚠</span><span>${i}</span></div>`);
+  }
   notes.forEach(n => el.innerHTML += `<div class="issue-row warn"><span>💡</span><span>${n}</span></div>`);
 }
 
@@ -905,11 +930,16 @@ async function validateCode() {
     const badgesEl = document.getElementById('val-badges');
     badgesEl.innerHTML = '';
     badgesEl.innerHTML += badge(d.syntax_ok ? 'green' : 'red', d.syntax_ok ? '✓ 문법 정상' : '✗ 문법 오류');
-    badgesEl.innerHTML += badge(d.security_issues.length ? 'red' : 'green',
-      d.security_issues.length ? `⚠ 보안 ${d.security_issues.length}건` : '✓ 보안 이상없음');
+    if (d.security_issues.length) {
+      const riskColors = { CRITICAL: 'red', HIGH: 'orange', MEDIUM: 'yellow', LOW: 'gray' };
+      const riskColor = riskColors[d.risk_level] || 'red';
+      badgesEl.innerHTML += badge(riskColor, `⚠ ${d.risk_level} · ${d.security_issues.length}건`);
+    } else {
+      badgesEl.innerHTML += badge('green', '✓ 보안 이상없음');
+    }
     badgesEl.innerHTML += badge('purple', `품질 ${d.quality_score}%`);
 
-    renderIssues('val-issues', d.security_issues, d.quality_notes);
+    renderIssues('val-issues', d.security_issues, d.quality_notes, d.security_details);
   });
 }
 
