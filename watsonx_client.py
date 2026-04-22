@@ -2,7 +2,7 @@ import logging
 import os
 import re
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from dotenv import load_dotenv
 from ibm_watsonx_ai import APIClient, Credentials
@@ -15,7 +15,14 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-MODEL_ID = "ibm/granite-8b-code-instruct"
+# 지원 모델 목록
+SUPPORTED_MODELS: dict[str, str] = {
+    "granite-8b":  "ibm/granite-8b-code-instruct",
+    "llama-70b":   "meta-llama/llama-3-3-70b-instruct",
+    "mistral-small": "mistralai/mistral-small-3-1-24b-instruct-2503",
+}
+
+DEFAULT_MODEL_KEY = "granite-8b"
 MAX_NEW_TOKENS = 2048
 
 
@@ -25,12 +32,11 @@ class GenerationResult:
     input_tokens: int
     output_tokens: int
     latency_ms: float
-    model_id: str = MODEL_ID
+    model_id: str = ""
     error: str | None = None
 
 
 def _build_prompt(user_prompt: str) -> str:
-    # Granite Code Instruct chat template
     return (
         f"<|system|>\n{SYSTEM_PROMPT}\n"
         f"<|user|>\n{user_prompt}\n"
@@ -39,11 +45,9 @@ def _build_prompt(user_prompt: str) -> str:
 
 
 def _extract_code(text: str) -> str:
-    # 코드 블록(```python ... ``` 또는 ``` ... ```) 안의 내용 추출
     match = re.search(r"```(?:python)?\n([\s\S]+?)```", text)
     if match:
         return match.group(1).strip()
-    # 코드 블록 없으면 전체 텍스트 반환
     return text.strip()
 
 
@@ -62,7 +66,13 @@ class WatsonxClient:
         self._client = APIClient(credentials)
         self._project_id = project_id
 
-    def generate_code(self, user_prompt: str, temperature: float = 0.2) -> GenerationResult:
+    def generate_code(
+        self,
+        user_prompt: str,
+        temperature: float = 0.2,
+        model_key: str = DEFAULT_MODEL_KEY,
+    ) -> GenerationResult:
+        model_id = SUPPORTED_MODELS.get(model_key, SUPPORTED_MODELS[DEFAULT_MODEL_KEY])
         prompt = _build_prompt(user_prompt)
 
         params = TextGenParameters(
@@ -72,7 +82,7 @@ class WatsonxClient:
         )
 
         model = ModelInference(
-            model_id=MODEL_ID,
+            model_id=model_id,
             api_client=self._client,
             project_id=self._project_id,
             params=params,
@@ -90,9 +100,9 @@ class WatsonxClient:
             output_tokens = result.get("generated_token_count", 0)
 
             logger.info(
-                "Generated code in %.0fms (%d→%d tokens) stop_reason=%s",
+                "Generated code in %.0fms (%d→%d tokens) model=%s stop_reason=%s",
                 elapsed_ms, input_tokens, output_tokens,
-                result.get("stop_reason", "?"),
+                model_id, result.get("stop_reason", "?"),
             )
 
             if not code:
@@ -103,11 +113,12 @@ class WatsonxClient:
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
                 latency_ms=elapsed_ms,
+                model_id=model_id,
             )
 
         except Exception as exc:
             logger.error("WatsonxClient error: %s", exc)
             return GenerationResult(
                 code="", input_tokens=0, output_tokens=0,
-                latency_ms=0, error=str(exc),
+                latency_ms=0, model_id=model_id, error=str(exc),
             )

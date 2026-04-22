@@ -256,6 +256,28 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
 
+  /* ── Model panel (sidebar) ── */
+  .model-panel { padding: 0 4px; }
+  .model-option {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 10px; border-radius: 10px; cursor: pointer;
+    border: 1px solid transparent; transition: all .18s; margin-bottom: 4px;
+  }
+  .model-option:hover { background: var(--surface2); border-color: var(--border); }
+  .model-option.selected {
+    background: var(--accent-glow); border-color: rgba(59,130,246,0.35);
+  }
+  .model-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+  .model-dot.granite { background: #3b82f6; box-shadow: 0 0 6px #3b82f6; }
+  .model-dot.llama   { background: #10b981; box-shadow: 0 0 6px #10b981; }
+  .model-dot.mistral { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+  .model-info { flex: 1; }
+  .model-name { font-size: .82rem; color: var(--text); font-weight: 500; }
+  .model-desc { font-size: .7rem; color: var(--text-muted); margin-top: 1px; }
+  .model-check { font-size: .78rem; color: var(--accent); font-weight: 700; width: 14px; text-align: right; }
+
   @media (max-width: 900px) {
     .grid { grid-template-columns: 1fr; }
     .sidebar { display: none; }
@@ -270,7 +292,7 @@
     <div class="logo-icon">⚡</div>
     <div>
       <div class="logo-text">AI 코드 생성기</div>
-      <div class="logo-sub">IBM watsonx · Granite 코드 모델</div>
+      <div class="logo-sub">IBM watsonx · AI Code Generator</div>
     </div>
   </div>
   <div class="header-right">
@@ -284,6 +306,34 @@
 <div class="layout">
   <!-- ── Sidebar ── -->
   <aside class="sidebar">
+    <div class="model-panel">
+      <div class="sidebar-label">AI 모델 선택</div>
+      <div class="model-option" data-key="granite-8b" onclick="selectModel('granite-8b')">
+        <div class="model-dot granite"></div>
+        <div class="model-info">
+          <div class="model-name">Granite 8B Code</div>
+          <div class="model-desc">IBM · 코드 특화</div>
+        </div>
+        <div class="model-check" id="check-granite-8b">✓</div>
+      </div>
+      <div class="model-option" data-key="llama-70b" onclick="selectModel('llama-70b')">
+        <div class="model-dot llama"></div>
+        <div class="model-info">
+          <div class="model-name">Llama 3.3 70B</div>
+          <div class="model-desc">Meta · 범용 대형</div>
+        </div>
+        <div class="model-check" id="check-llama-70b"></div>
+      </div>
+      <div class="model-option" data-key="mistral-small" onclick="selectModel('mistral-small')">
+        <div class="model-dot mistral"></div>
+        <div class="model-info">
+          <div class="model-name">Mistral Small 24B</div>
+          <div class="model-desc">Mistral · 경량 고성능</div>
+        </div>
+        <div class="model-check" id="check-mistral-small"></div>
+      </div>
+    </div>
+    <div class="sidebar-divider"></div>
     <div class="sidebar-label">기능</div>
     <div class="nav-item active" onclick="switchTab('function')" id="nav-function">
       <span class="nav-icon">𝑓</span> 함수 생성 <span class="nav-badge">Hot</span>
@@ -301,12 +351,6 @@
     </div>
     <div class="nav-item" onclick="switchTab('explain')" id="nav-explain">
       <span class="nav-icon">💬</span> 코드 설명
-    </div>
-    <div class="sidebar-divider"></div>
-    <div class="shortcut-section">
-      <div class="sidebar-label">단축키</div>
-      <div class="shortcut-item"><span>함수 생성</span><kbd>Ctrl+Shift+K</kbd></div>
-      <div class="shortcut-item"><span>복사</span><kbd>Ctrl+C</kbd></div>
     </div>
   </aside>
 
@@ -558,6 +602,23 @@ function fillTest(code) { document.getElementById('test-src').value = code; }
 function fillValidate(code) { document.getElementById('val-code').value = code; }
 function fillExplain(code) { document.getElementById('exp-src').value = code; }
 
+// ── 모델 선택 ─────────────────────────────────────────────────────────────────
+let _selectedModel = 'granite-8b';
+
+function getModel() { return _selectedModel; }
+
+function selectModel(key) {
+  _selectedModel = key;
+  document.querySelectorAll('.model-option').forEach(el => {
+    const isSelected = el.dataset.key === key;
+    el.classList.toggle('selected', isSelected);
+  });
+  ['granite-8b', 'llama-70b', 'mistral-small'].forEach(k => {
+    const el = document.getElementById('check-' + k);
+    if (el) el.textContent = k === key ? '✓' : '';
+  });
+}
+
 // ── 서버 상태 확인 ────────────────────────────────────────────────────────────
 async function checkHealth() {
   const dot = document.getElementById('status-dot');
@@ -565,9 +626,8 @@ async function checkHealth() {
   try {
     const r = await fetch(`${API}/health`, { signal: AbortSignal.timeout(3000) });
     if (r.ok) {
-      const d = await r.json();
       dot.className = 'dot online';
-      txt.textContent = '서버 연결됨 · ' + (d.model?.split('/').pop() || '');
+      txt.textContent = '서버 연결됨';
     } else throw new Error();
   } catch {
     dot.className = 'dot offline';
@@ -602,6 +662,7 @@ function renderResult(prefix, data) {
   el.innerHTML += badge(v.syntax_ok ? 'green' : 'red', v.syntax_ok ? '✓ 문법 정상' : '✗ 문법 오류');
   el.innerHTML += badge(v.security_issues.length ? 'red' : 'green', v.security_issues.length ? `⚠ 보안 ${v.security_issues.length}건` : '✓ 보안 이상없음');
   el.innerHTML += badge('blue', `신뢰도 ${data.confidence_score}%`);
+  if (data.model_id) el.innerHTML += badge('purple', data.model_id.split('/').pop());
 
   renderIssues(`${prefix}-issues`, v.security_issues, v.quality_notes);
 }
@@ -654,6 +715,7 @@ async function generateFunction() {
       function_name: document.getElementById('fn-name').value,
       description: document.getElementById('fn-desc').value,
       context: document.getElementById('fn-ctx').value,
+      model: getModel(),
     });
     renderResult('fn', data);
   });
@@ -667,6 +729,7 @@ async function generateClass() {
       class_name: document.getElementById('cls-name').value,
       description: document.getElementById('cls-desc').value,
       methods,
+      model: getModel(),
     });
     renderResult('cls', data);
   });
@@ -676,6 +739,7 @@ async function generateTests() {
   await withBtn('#panel-tests .btn-generate', async () => {
     const data = await call('/generate/tests', {
       source_code: document.getElementById('test-src').value,
+      model: getModel(),
     });
     renderResult('test', data);
   });
@@ -709,7 +773,7 @@ async function validateCode() {
 
 async function explainCode() {
   await withBtn('#panel-explain .btn-generate', async () => {
-    const d = await call('/explain', { source_code: document.getElementById('exp-src').value });
+    const d = await call('/explain', { source_code: document.getElementById('exp-src').value, model: getModel() });
     document.getElementById('exp-result').textContent = d.explanation;
     document.getElementById('exp-metrics').style.display = 'flex';
     document.getElementById('exp-latency').textContent = Math.round(d.latency_ms).toLocaleString();
@@ -719,6 +783,7 @@ async function explainCode() {
 // Init
 checkHealth();
 setInterval(checkHealth, 10000);
+selectModel('granite-8b');
 </script>
 </body>
 </html>
