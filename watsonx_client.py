@@ -14,7 +14,7 @@ from prompt_templates import SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 
-MODEL_ID = "ibm/granite-34b-code-instruct"
+MODEL_ID = "meta-llama/llama-3-3-70b-instruct"
 MAX_NEW_TOKENS = 4096
 
 
