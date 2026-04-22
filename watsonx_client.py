@@ -1,21 +1,22 @@
 import logging
 import os
+import re
 import time
 from dataclasses import dataclass
 
 from dotenv import load_dotenv
 from ibm_watsonx_ai import APIClient, Credentials
-
-load_dotenv()
 from ibm_watsonx_ai.foundation_models import ModelInference
 from ibm_watsonx_ai.foundation_models.schema import TextGenParameters
 
 from prompt_templates import SYSTEM_PROMPT
 
+load_dotenv()
+
 logger = logging.getLogger(__name__)
 
 MODEL_ID = "ibm/granite-8b-code-instruct"
-MAX_NEW_TOKENS = 4096
+MAX_NEW_TOKENS = 2048
 
 
 @dataclass
@@ -26,6 +27,24 @@ class GenerationResult:
     latency_ms: float
     model_id: str = MODEL_ID
     error: str | None = None
+
+
+def _build_prompt(user_prompt: str) -> str:
+    # Granite Code Instruct chat template
+    return (
+        f"<|system|>\n{SYSTEM_PROMPT}\n"
+        f"<|user|>\n{user_prompt}\n"
+        "<|assistant|>\n"
+    )
+
+
+def _extract_code(text: str) -> str:
+    # 코드 블록(```python ... ``` 또는 ``` ... ```) 안의 내용 추출
+    match = re.search(r"```(?:python)?\n([\s\S]+?)```", text)
+    if match:
+        return match.group(1).strip()
+    # 코드 블록 없으면 전체 텍스트 반환
+    return text.strip()
 
 
 class WatsonxClient:
@@ -44,12 +63,12 @@ class WatsonxClient:
         self._project_id = project_id
 
     def generate_code(self, user_prompt: str, temperature: float = 0.2) -> GenerationResult:
-        full_prompt = f"{SYSTEM_PROMPT}\n\n{user_prompt}"
+        prompt = _build_prompt(user_prompt)
 
         params = TextGenParameters(
             temperature=temperature,
             max_new_tokens=MAX_NEW_TOKENS,
-            stop_sequences=["```\n\n"],
+            repetition_penalty=1.05,
         )
 
         model = ModelInference(
@@ -61,18 +80,23 @@ class WatsonxClient:
 
         start = time.perf_counter()
         try:
-            response = model.generate(prompt=full_prompt)
+            response = model.generate(prompt=prompt)
             elapsed_ms = (time.perf_counter() - start) * 1000
 
             result = response["results"][0]
-            code = result.get("generated_text", "").strip()
+            raw = result.get("generated_text", "")
+            code = _extract_code(raw)
             input_tokens = result.get("input_token_count", 0)
             output_tokens = result.get("generated_token_count", 0)
 
             logger.info(
-                "Generated code in %.0fms (%d→%d tokens)",
+                "Generated code in %.0fms (%d→%d tokens) stop_reason=%s",
                 elapsed_ms, input_tokens, output_tokens,
+                result.get("stop_reason", "?"),
             )
+
+            if not code:
+                logger.warning("Empty output. Raw response: %r", raw[:200])
 
             return GenerationResult(
                 code=code,
