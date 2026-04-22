@@ -1,11 +1,18 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI 코드 생성기 — IBM watsonx</title>
+<!-- Prism.js syntax highlighting -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js" defer></script>
 <style>
-  :root {
+  /* ── Dark theme (default) ── */
+  :root, [data-theme="dark"] {
     --bg: #070b14;
     --surface: #0d1321;
     --surface2: #111827;
@@ -23,21 +30,48 @@
     --text-muted: #64748b;
     --text-dim: #94a3b8;
     --font-mono: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    --header-bg: rgba(7,11,20,0.85);
+    --prism-bg: #1e2d3d;
   }
+
+  /* ── Light theme ── */
+  [data-theme="light"] {
+    --bg: #f1f5f9;
+    --surface: #ffffff;
+    --surface2: #f8fafc;
+    --border: #e2e8f0;
+    --border-light: #cbd5e1;
+    --accent: #2563eb;
+    --accent2: #4f46e5;
+    --accent-glow: rgba(37,99,235,0.1);
+    --green: #059669;
+    --green-bg: #d1fae5;
+    --red: #dc2626;
+    --red-bg: #fee2e2;
+    --yellow: #d97706;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --text-dim: #475569;
+    --header-bg: rgba(241,245,249,0.9);
+    --prism-bg: #f6f8fa;
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
     background: var(--bg); color: var(--text);
     min-height: 100vh; overflow-x: hidden;
+    transition: background .25s, color .25s;
   }
 
   /* ── Header ── */
   header {
     position: sticky; top: 0; z-index: 100;
-    background: rgba(7,11,20,0.85); backdrop-filter: blur(16px);
+    background: var(--header-bg); backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--border);
     padding: 0 32px; height: 60px;
     display: flex; align-items: center; justify-content: space-between;
+    transition: background .25s;
   }
   .logo { display: flex; align-items: center; gap: 12px; }
   .logo-icon {
@@ -138,7 +172,7 @@
     width: 100%; padding: 10px 14px;
     background: var(--bg); border: 1px solid var(--border);
     border-radius: 9px; color: var(--text); font-size: .88rem;
-    outline: none; transition: border-color .2s, box-shadow .2s;
+    outline: none; transition: border-color .2s, box-shadow .2s, background .25s, color .25s;
     font-family: inherit;
   }
   input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
@@ -203,12 +237,35 @@
 
   .code-wrap { flex: 1; position: relative; }
   pre {
-    padding: 20px; font-family: var(--font-mono);
-    font-size: .82rem; line-height: 1.75; overflow-x: auto;
-    white-space: pre; min-height: 200px; color: #c9d1d9;
-    tab-size: 4;
+    font-family: var(--font-mono) !important;
+    font-size: .82rem !important; line-height: 1.75 !important;
+    overflow-x: auto; min-height: 200px; tab-size: 4;
+    margin: 0 !important; border-radius: 0 !important;
+    background: var(--prism-bg) !important;
   }
+  /* Prism tomorrow theme overrides for light mode */
+  [data-theme="light"] pre[class*="language-"],
+  [data-theme="light"] code[class*="language-"] {
+    color: #24292e;
+    text-shadow: none;
+  }
+  [data-theme="light"] .token.comment { color: #6a737d; }
+  [data-theme="light"] .token.keyword { color: #d73a49; }
+  [data-theme="light"] .token.string  { color: #032f62; }
+  [data-theme="light"] .token.number  { color: #005cc5; }
+  [data-theme="light"] .token.function { color: #6f42c1; }
+  [data-theme="light"] .token.builtin  { color: #005cc5; }
+  [data-theme="light"] .token.operator { color: #d73a49; }
   .placeholder-text { color: var(--text-muted); font-style: italic; font-family: var(--font-mono); font-size: .82rem; }
+
+  /* ── Theme toggle ── */
+  .btn-theme {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text-dim); padding: 6px 12px; border-radius: 8px;
+    font-size: .82rem; cursor: pointer; transition: all .15s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn-theme:hover { border-color: var(--accent); color: var(--accent); }
 
   .code-actions {
     position: absolute; top: 12px; right: 12px; display: flex; gap: 6px;
@@ -362,6 +419,7 @@
     </div>
   </div>
   <div class="header-right">
+    <button class="btn-theme" onclick="toggleTheme()" id="theme-btn">🌙 다크</button>
     <div class="status-pill">
       <div class="dot" id="status-dot"></div>
       <span id="status-text">서버 확인 중...</span>
@@ -804,7 +862,10 @@ function setLoading(btn, on) {
 
 // ── 결과 렌더링 ───────────────────────────────────────────────────────────────
 function renderResult(prefix, data) {
-  document.getElementById(`${prefix}-code`).textContent = data.code;
+  const codeEl = document.getElementById(`${prefix}-code`);
+  codeEl.textContent = data.code;
+  codeEl.className = 'language-python line-numbers';
+  if (window.Prism) Prism.highlightElement(codeEl);
   document.getElementById(`${prefix}-metrics`).style.display = 'flex';
   document.getElementById(`${prefix}-latency`).textContent = Math.round(data.latency_ms).toLocaleString();
   document.getElementById(`${prefix}-tokens`).textContent = data.tokens_used.toLocaleString();
@@ -1017,7 +1078,21 @@ function setText(id, val) {
   if (el) el.textContent = val;
 }
 
+// ── 다크/라이트 모드 토글 ─────────────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  document.getElementById('theme-btn').textContent = next === 'dark' ? '🌙 다크' : '☀️ 라이트';
+  localStorage.setItem('theme', next);
+}
+
 // Init
+const savedTheme = localStorage.getItem('theme') || 'dark';
+document.documentElement.setAttribute('data-theme', savedTheme);
+document.getElementById('theme-btn').textContent = savedTheme === 'dark' ? '🌙 다크' : '☀️ 라이트';
+
 checkHealth();
 setInterval(checkHealth, 10000);
 selectModel('granite-8b');
